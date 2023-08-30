@@ -64,7 +64,7 @@
             }
         }
 
-        const companyName = $element.find(selectors.jobCompanyName).text().trim();
+        const companyName = $element.find(selectors.jobCompany).text().trim();
         if (companyName && companyBlacklist.some(re => { re.lastIndex = 0; return re.test(companyName); })) {
             return true;
         }
