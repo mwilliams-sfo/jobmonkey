@@ -81,6 +81,15 @@ const hideItem = element => {
 const itemObservations = [];
 const changedItems = new rx.Subject();
 
+const mutationObservable = (target, options) =>
+    new rx.Observable(subscriber => {
+        const observer = new MutationObserver((mutationList, observer) => {
+            subscriber.next(mutationList);
+        });
+        observer.observe(target, options);
+        subscriber.add(() => observer.disconnect());
+    });
+
 const observeItem = element => {
     if (isUnwantedResult(element)) {
         hideItem(element);
@@ -88,19 +97,13 @@ const observeItem = element => {
     }
     if (itemObservations.some(observation => observation.node === element)) return;
     // Emit this element to the changedItems subject when it changes.
-    const observable = new rx.Observable(subscription => {
-        const observer = new MutationObserver((mutationList, observer) => {
-            mutationList.forEach(mutation => subscription.next(mutation));
-        });
-        observer.observe(element, {
-            subtree: true,
-            childList: true,
-            attributes: true,
-            characterData: true
-        });
-        subscription.add(() => observer.disconnect());
+    const observable = mutationObservable(element, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        characterData: true
     });
-    const subscription = observable.subscribe(mutation => changedItems.next(element));
+    const subscription = observable.subscribe(mutations => changedItems.next(element));
     itemObservations.push({ node: element, subscription });
 };
 
@@ -113,14 +116,9 @@ const unobserveItem = node => {
 
 const observeList = element => {
     // Track added and removed items.
-    const observable = new rx.Observable(subscriber => {
-        const observer = new MutationObserver((mutationList, observer) => {
-            mutationList.forEach(mutation => subscriber.next(mutation));
-        });
-        observer.observe(element, { childList: true });
-        subscriber.add(() => observer.disconnect());
-    });
+    const observable = mutationObservable(element, { childList: true });
     const childObservable = observable.pipe(
+        rx.concatAll(),
         rx.filter(mutation => mutation.type === 'childList'),
         rx.share()
     );
@@ -140,18 +138,13 @@ if ($list.length) {
     observeList($list[0]);
 } else {
     // Observe the result list as soon as it appears.
-    const observable = new rx.Observable(subscriber => {
-        const observer = new MutationObserver((mutationList, observer) => {
-            mutationList.forEach(mutation => subscriber.next(mutation));
-        });
-        observer.observe(document.body, {
-            subtree: true,
-            childList: true
-        });
-        subscriber.add(() => observer.disconnect());
+    const observable = mutationObservable(document.body, {
+        subtree: true,
+        childList: true
     });
     observable
         .pipe(
+            rx.concatAll(),
             rx.filter(mutation => mutation.type === 'childList'),
             rx.concatMap(mutation => rx.from(mutation.addedNodes)),
             rx.filter(node => node.nodeType == Node.ELEMENT_NODE && $(node).is(selectors.searchResultContainer)),
