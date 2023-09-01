@@ -8,14 +8,11 @@
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/rxjs/7.8.1/rxjs.umd.js
 // ==/UserScript==
 
 'use strict';
 
-const $ = window.$;
-const itemObservations = [];
-
-// Company names matching these patterns will be hidden.
 const companyBlacklist = [
     /infote/i,
     /^intelli/i,
@@ -32,6 +29,9 @@ const selectors = {
     jobCompany: '.job-card-container__company-name, .job-card-container__primary-description',
     jobMetadataItem: 'li.job-card-container__metadata-item'
 }
+
+const $ = window.jQuery;
+const rx = this.rxjs;
 
 const filterTitle = title => {
     title = title.toLowerCase();
@@ -78,71 +78,91 @@ const hideItem = element => {
     $(element).css('visibility', 'hidden');
 };
 
+const itemObservations = [];
+const changedItems = new rx.Subject();
+
 const observeItem = element => {
     if (isUnwantedResult(element)) {
         hideItem(element);
         return;
     }
     if (itemObservations.some(observation => observation.node === element)) return;
-    const observer = new MutationObserver((mutationList, observer) => {
-        if (isUnwantedResult(element)) {
-            hideItem(element);
-            unobserveItem(element);
-        }
+    // Emit this element to the changedItems subject when it changes.
+    const observable = new rx.Observable(subscription => {
+        const observer = new MutationObserver((mutationList, observer) => {
+            mutationList.forEach(mutation => subscription.next(mutation));
+        });
+        observer.observe(element, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            characterData: true
+        });
+        subscription.add(() => observer.disconnect());
     });
-    observer.observe(element, {
-        subtree: true,
-        childList: true,
-        attributes: true,
-        characterData: true
-    });
-    itemObservations.push({
-        node: element,
-        observer
-    });
+    const subscription = observable.subscribe(mutation => changedItems.next(element));
+    itemObservations.push({ node: element, subscription });
 };
 
 const unobserveItem = node => {
     const index = itemObservations.findIndex(it => it.node === node);
     if (index === -1) return;
-    itemObservations[index].observer.disconnect();
+    itemObservations[index].subscription.unsubscribe();
     itemObservations.splice(index, 1);
 };
 
 const observeList = element => {
-    const listObserver = new MutationObserver((mutationList, observer) => {
-        mutationList.forEach(mutation => {
-            if (mutation.type !== 'childList') return;
-            Array.from(mutation.removedNodes).forEach(unobserveItem);
-            Array.from(mutation.addedNodes).forEach(node => {
-                if (isResultItem(node)) {
-                    observeItem(node);
-                }
-            });
+    // Track added and removed items.
+    const observable = new rx.Observable(subscriber => {
+        const observer = new MutationObserver((mutationList, observer) => {
+            mutationList.forEach(mutation => subscriber.next(mutation));
         });
+        observer.observe(element, { childList: true });
+        subscriber.add(() => observer.disconnect());
     });
-    listObserver.observe(element, { childList: true });
-    $(element).find(selectors.searchResultItem)
-        .each((index, element) => observeItem(element));
+    const childObservable = observable.pipe(
+        rx.filter(mutation => mutation.type === 'childList'),
+        rx.share()
+    );
+    childObservable
+        .pipe(
+            rx.concatMap(mutation => rx.from(Array.from(mutation.addedNodes))),
+            rx.filter(isResultItem)
+        )
+        .subscribe(observeItem);
+    childObservable
+        .pipe(rx.concatMap(mutation => rx.from(mutation.removedNodes)))
+        .subscribe(unobserveItem);
 };
 
 const $list = $(selectors.searchResultContainer)
 if ($list.length) {
     observeList($list[0]);
 } else {
-    const bodyObserver = new MutationObserver((mutationList, observer) => {
-        mutationList.forEach(mutation => {
-            if (mutation.type !== 'childList') return;
-            Array.from(mutation.addedNodes).forEach(node => {
-                if (node.nodeType !== Node.ELEMENT_NODE) return;
-                if ($(node).is(selectors.searchResultContainer)) {
-                    observeList(node);
-                }
-            });
+    // Observe the result list as soon as it appears.
+    const observable = new rx.Observable(subscriber => {
+        const observer = new MutationObserver((mutationList, observer) => {
+            mutationList.forEach(mutation => subscriber.next(mutation));
         });
+        observer.observe(document.body, {
+            subtree: true,
+            childList: true
+        });
+        subscriber.add(() => observer.disconnect());
     });
-    bodyObserver.observe(document.body, {
-        subtree: true,
-        childList: true
-    });
+    observable
+        .pipe(
+            rx.filter(mutation => mutation.type === 'childList'),
+            rx.concatMap(mutation => rx.from(mutation.addedNodes)),
+            rx.filter(node => node.nodeType == Node.ELEMENT_NODE && $(node).is(selectors.searchResultContainer)),
+            rx.first()
+        )
+        .subscribe(observeList);
 }
+
+changedItems.subscribe(element => {
+    if (isUnwantedResult(element)) {
+        hideItem(element);
+        unobserveItem(element);
+    }
+});
