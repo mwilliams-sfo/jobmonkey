@@ -116,19 +116,19 @@ const unobserveItem = node => {
 
 const observeList = element => {
     // Track added and removed items.
-    const observable = mutationObservable(element, { childList: true });
-    const childObservable = observable.pipe(
-        rx.concatAll(),
-        rx.filter(mutation => mutation.type === 'childList'),
-        rx.share()
-    );
-    childObservable
+    const itemObservable = mutationObservable(element, { childList: true });
         .pipe(
-            rx.concatMap(mutation => rx.from(Array.from(mutation.addedNodes))),
+            rx.concatAll(),
+            rx.filter(mutation => mutation.type === 'childList'),
+            rx.share()
+        );
+    itemObservable
+        .pipe(
+            rx.concatMap(mutation => rx.from(mutation.addedNodes)),
             rx.filter(isResultItem)
         )
         .subscribe(observeItem);
-    childObservable
+    itemObservable
         .pipe(rx.concatMap(mutation => rx.from(mutation.removedNodes)))
         .subscribe(unobserveItem);
 };
@@ -153,6 +153,7 @@ if ($list.length) {
         .subscribe(observeList);
 }
 
+// Subscribe to search result item changes and hide any undesirable item.
 changedItems.subscribe(element => {
     if (isUnwantedResult(element)) {
         hideItem(element);
