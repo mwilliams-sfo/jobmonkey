@@ -65,7 +65,14 @@ const filterTitle = title => {
     title = title.toLowerCase();
     if ((/manager|lead|test/).test(title)) return false;
 
-    const terms = searchTerms(window.location).map(s => s.toLowerCase());
+    const terms = searchTerms(window.location)
+        .map(s => {
+            s = s.trim();
+            if ((/^"[^"]*"$/).test(s) || (/^'[^']*'$/).test(s)) {
+                s = s.substring(1, s.length - 1).trim();
+            }
+            return s.trim().toLowerCase();
+        });
     if (terms.includes('android')) {
         if (!(/\b(android|mobile)\b/i).test(title)) return false;
         if ((/automotive/i).test(title)) return false;
