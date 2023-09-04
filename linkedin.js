@@ -80,10 +80,9 @@ const isUnwantedResult = element => {
         return true;
     }
 
-    const searchLocation = new URLSearchParams(window.location.search).get('location');
     const jobLocation = $element.find(selectors.jobMetadataItem).eq(0).text().trim();
     if (jobLocation) {
-        const searchLocation = new URLSearchParams(window.location.search).get('location');
+        const searchLocation = (new URLSearchParams(window.location.search).get('location') || '').trim();
         if (jobLocation.toLowerCase() === 'united states' && searchLocation.toLowerCase() !== 'united states') {
             return true;
         }
