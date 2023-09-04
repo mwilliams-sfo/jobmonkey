@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         LinkedIn search (Android/mobile)
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/mwilliams-sfo/jobmonkey
 // @version      0.1
 // @description  Filtering script for LinkedIn job search results
 // @author       Myles Williams
-// @match        https://www.linkedin.com/jobs/search/?*
+// @match        https://www.linkedin.com/jobs/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js
