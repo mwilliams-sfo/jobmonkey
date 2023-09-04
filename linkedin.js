@@ -38,10 +38,11 @@ const searchTerms = location => {
     const match = (/^\/jobs\/([^/]+)\//).exec(location.pathname);
     pathMatch:
     if (match) {
-        const searchString = decodeURIComponent(match[1]).toLowerCase();
+        const searchString = decodeURIComponent(match[1]);
         if (searchString === 'search') break pathMatch;
         const pathTerms = searchString.split(/-+/);
-        for (const term of pathTerms) {
+        for (let term of pathTerms) {
+            term = (term || '').trim();
             if (term && !terms.includes(term)) {
                 terms.push(term);
             }
@@ -50,7 +51,8 @@ const searchTerms = location => {
     const keywordsParam = new URLSearchParams(location.search).get('keywords')
     if (keywordsParam) {
         const queryTerms = decodeURIComponent(keywordsParam).split(/\s+/);
-        for (const term of queryTerms) {
+        for (let term of queryTerms) {
+            term = (term || '').trim();
             if (term && !terms.includes(term)) {
                 terms.push(term);
             }
@@ -63,7 +65,7 @@ const filterTitle = title => {
     title = title.toLowerCase();
     if ((/manager|lead|test/).test(title)) return false;
 
-    const terms = searchTerms(window.location);
+    const terms = searchTerms(window.location).map(s => s.toLowerCase());
     if (terms.includes('android')) {
         if (!(/\b(android|mobile)\b/i).test(title)) return false;
         if ((/automotive/i).test(title)) return false;
