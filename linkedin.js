@@ -97,9 +97,6 @@ const isUnwantedResult = element => {
     return false;
 }
 
-const isResultItem = node =>
-    $(node).is(selectors.searchResultItem);
-
 const hideItem = element => {
     $(element).css('visibility', 'hidden');
 };
@@ -148,33 +145,28 @@ const observeList = element => {
     itemObservable
         .pipe(
             rx.concatMap(mutation => rx.from(mutation.addedNodes)),
-            rx.filter(isResultItem)
+            rx.filter(node => node.nodeType === Node.ELEMENT_NODE)
         )
         .subscribe(observeItem);
     itemObservable
-        .pipe(rx.concatMap(mutation => rx.from(mutation.removedNodes)))
+        .pipe(
+            rx.concatMap(mutation => rx.from(mutation.removedNodes)),
+            rx.filter(node => node.nodeType === Node.ELEMENT_NODE)
+        )
         .subscribe(unobserveItem);
 };
 
+// Start observing the result list as soon as it appears.
 const $list = $(selectors.searchResultContainer)
-if ($list.length) {
-    observeList($list[0]);
-} else {
-    // Observe the result list as soon as it appears.
-    const observable = mutationObservable(document.body, {
-        subtree: true,
-        childList: true
-    });
-    observable
-        .pipe(
-            rx.concatAll(),
-            rx.filter(mutation => mutation.type === 'childList'),
-            rx.concatMap(mutation => rx.from(mutation.addedNodes)),
-            rx.filter(node => node.nodeType == Node.ELEMENT_NODE && $(node).is(selectors.searchResultContainer)),
-            rx.first()
-        )
-        .subscribe(observeList);
-}
+const observable = $list.length ? rx.observable.of($list[0]) :
+    mutationObservable(document.body, { subtree: true, childList: true }).pipe(
+        rx.concatAll(),
+        rx.filter(mutation => mutation.type === 'childList'),
+        rx.concatMap(mutation => rx.from(mutation.addedNodes)),
+        rx.filter(node => node.nodeType == Node.ELEMENT_NODE && $(node).is(selectors.searchResultContainer)),
+        rx.first()
+    );
+observable.subscribe(observeList);
 
 // Subscribe to search result item changes and hide any undesirable item.
 changedItems.subscribe(element => {
