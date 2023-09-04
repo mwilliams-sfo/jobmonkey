@@ -117,12 +117,9 @@ const mutationObservable = (target, options) =>
     });
 
 const observeItem = element => {
-    if (isUnwantedResult(element)) {
-        hideItem(element);
-        return;
-    }
     if (itemObservations.some(observation => observation.node === element)) return;
-    // Emit this element to the changedItems subject when it changes.
+    // Emit this element to the changedItems subject now and each time it changes.
+    changedItems.next(element);
     const observable = mutationObservable(element, {
         subtree: true,
         childList: true,
@@ -183,6 +180,6 @@ if ($list.length) {
 changedItems.subscribe(element => {
     if (isUnwantedResult(element)) {
         hideItem(element);
-        unobserveItem(element);
+        //unobserveItem(element);
     }
 });
