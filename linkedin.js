@@ -33,12 +33,38 @@ const selectors = {
 const $ = window.jQuery;
 const rx = this.rxjs;
 
+const searchTerms = location => {
+    const terms = [];
+    const match = (/^\/jobs\/([^/]+)\//).exec(location.pathname);
+    pathMatch:
+    if (match) {
+        const searchString = decodeURIComponent(match[1]).toLowerCase();
+        if (searchString === 'search') break pathMatch;
+        const pathTerms = searchString.split(/-+/);
+        for (const term of pathTerms) {
+            if (term && !terms.includes(term)) {
+                terms.push(term);
+            }
+        }
+    }
+    const keywordsParam = new URLSearchParams(location.search).get('keywords')
+    if (keywordsParam) {
+        const queryTerms = decodeURIComponent(keywordsParam).split(/\s+/);
+        for (const term of queryTerms) {
+            if (term && !terms.includes(term)) {
+                terms.push(term);
+            }
+        }
+    }
+    return terms;
+};
+
 const filterTitle = title => {
     title = title.toLowerCase();
     if ((/manager|lead|test/).test(title)) return false;
 
-    const keywords = new URLSearchParams(window.location.search).get('keywords');
-    if ((/\bandroid\b/i).test(keywords)) {
+    const terms = searchTerms(window.location);
+    if (terms.includes('android')) {
         if (!(/\b(android|mobile)\b/i).test(title)) return false;
         if ((/automotive/i).test(title)) return false;
     }
@@ -116,7 +142,7 @@ const unobserveItem = node => {
 
 const observeList = element => {
     // Track added and removed items.
-    const itemObservable = mutationObservable(element, { childList: true });
+    const itemObservable = mutationObservable(element, { childList: true })
         .pipe(
             rx.concatAll(),
             rx.filter(mutation => mutation.type === 'childList'),
