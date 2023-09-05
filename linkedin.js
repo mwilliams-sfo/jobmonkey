@@ -121,42 +121,42 @@ const mutationObservable = (target, options) =>
         subscriber.add(() => observer.disconnect());
     });
 
-const observeItem = element => {
-    if (itemObservations.some(observation => observation.node === element)) return;
-    // Emit this element to the changedItems subject now and each time it changes.
-    changedItems.next(element);
-    const observable = mutationObservable(element, {
+const observeItem = itemElement => {
+    if (itemObservations.some(observation => observation.node === itemElement)) return;
+    // Publish this element to the changedItems subject now and each time it changes.
+    changedItems.next(itemElement);
+    const rxItemChanges = mutationObservable(itemElement, {
         subtree: true,
         childList: true,
         attributes: true,
         characterData: true
     });
-    const subscription = observable.subscribe(mutations => changedItems.next(element));
-    itemObservations.push({ node: element, subscription });
+    const subscription = rxItemChanges.subscribe(mutations => changedItems.next(itemElement));
+    itemObservations.push({ node: itemElement, subscription });
 };
 
-const unobserveItem = node => {
-    const index = itemObservations.findIndex(it => it.node === node);
+const unobserveItem = itemElement => {
+    const index = itemObservations.findIndex(it => it.node === itemElement);
     if (index === -1) return;
     itemObservations[index].subscription.unsubscribe();
     itemObservations.splice(index, 1);
 };
 
-const observeList = element => {
+const observeList = listElement => {
     // Track added and removed items.
-    const itemObservable = mutationObservable(element, { childList: true })
+    const rxChildMutations = mutationObservable(listElement, { childList: true })
         .pipe(
             rx.concatAll(),
             rx.filter(mutation => mutation.type === 'childList'),
             rx.share()
         );
-    itemObservable
+    rxChildMutations
         .pipe(
             rx.concatMap(mutation => rx.from(mutation.addedNodes)),
             rx.filter(node => node.nodeType === Node.ELEMENT_NODE)
         )
         .subscribe(observeItem);
-    itemObservable
+    rxChildMutations
         .pipe(
             rx.concatMap(mutation => rx.from(mutation.removedNodes)),
             rx.filter(node => node.nodeType === Node.ELEMENT_NODE)
@@ -165,8 +165,8 @@ const observeList = element => {
 };
 
 // Start observing the result list as soon as it appears.
-const $list = $(selectors.searchResultContainer)
-const observable = $list.length ? rx.observable.of($list[0]) :
+const $resultList = $(selectors.searchResultContainer)
+const rxResultList = $resultList.length ? rx.observable.of($resultList[0]) :
     mutationObservable(document.body, { subtree: true, childList: true }).pipe(
         rx.concatAll(),
         rx.filter(mutation => mutation.type === 'childList'),
@@ -174,7 +174,7 @@ const observable = $list.length ? rx.observable.of($list[0]) :
         rx.filter(node => node.nodeType == Node.ELEMENT_NODE && $(node).is(selectors.searchResultContainer)),
         rx.first()
     );
-observable.subscribe(observeList);
+rxResultList.subscribe(observeList);
 
 // Subscribe to search result item changes and hide any undesirable item.
 changedItems.subscribe(element => {
