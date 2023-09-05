@@ -13,13 +13,14 @@
 
 'use strict';
 
-const companyBlacklist = [
+const companyExclusions = [
+    /consult/i,
     /infote/i,
     /^intelli/i,
-    /^tek/i,
-    /tek\b/i,
     /resourc/i,
-    /solutions/i
+    /solutions/i,
+    /^tek/i,
+    /tek\b/i
 ];
 
 const selectors = {
@@ -98,7 +99,7 @@ const isUnwantedResult = element => {
     }
 
     const companyName = $element.find(selectors.jobCompany).text().trim();
-    if (companyName && companyBlacklist.some(re => { re.lastIndex = 0; return re.test(companyName); })) {
+    if (companyName && companyExclusions.some(re => { re.lastIndex = 0; return re.test(companyName); })) {
         return true;
     }
 
