@@ -24,7 +24,6 @@ const companyExclusions = [
 ];
 
 const selectors = {
-    searchResultContainer: '.jobs-search-results-list > ul.scaffold-layout__list-container',
     searchResultItem: 'li.jobs-search-results__list-item',
     jobTitle: '.job-card-list__title',
     jobCompany: '.job-card-container__company-name, .job-card-container__primary-description',
@@ -112,8 +111,8 @@ const isUnwantedResult = element => {
     return false;
 }
 
-const hideItem = element => {
-    $(element).css('visibility', 'hidden');
+const toggleItem = (element, visible) => {
+    $(element).css('visibility', visible ? 'visible' : 'hidden');
 };
 
 const itemObservations = [];
@@ -128,68 +127,43 @@ const mutationObservable = (target, options) =>
         subscriber.add(() => observer.disconnect());
     });
 
-const observeItem = itemElement => {
-    if (itemObservations.some(observation => observation.node === itemElement)) return;
-    // Publish this element to the changedItems subject now and each time it changes.
-    rxChangedItems.next(itemElement);
-    const rxItemChanges = mutationObservable(itemElement, {
-        subtree: true,
+const observeItem = element => {
+    if (itemObservations.some(it => it.node === element)) return;
+
+    // Publish this element to the changed items subject now and every time it changes.
+    rxChangedItems.next(element);
+    const rxItemMutations = mutationObservable(element, {
         childList: true,
         attributes: true,
-        characterData: true
+        characterData: true,
+        subtree: true
     });
-    const subscription = rxItemChanges.subscribe(mutations => rxChangedItems.next(itemElement));
-    itemObservations.push({ node: itemElement, subscription });
+    const subscription = rxItemMutations.subscribe(mutations => rxChangedItems.next(element));
+    itemObservations.push({ node: element, subscription });
 };
 
-const unobserveItem = itemElement => {
-    const index = itemObservations.findIndex(it => it.node === itemElement);
-    if (index === -1) return;
-    itemObservations[index].subscription.unsubscribe();
-    itemObservations.splice(index, 1);
+const unobserveItem = element => {
+    const i = itemObservations.findIndex(it => it.node === element);
+    if (i < 0) return;
+    itemObservations[i].subscription.unsubscribe();
+    itemObservations.splice(i, 1);
 };
 
-const observeList = listElement => {
-    // Observe items already in the list.
-    for (const item of $(listElement).find(selectors.searchResultItem).toArray()) {
-        observeItem(item);
-    }
+const rxBodyMutations = mutationObservable(document.body, {
+    childList: true,
+    attributes: true,
+    subtree: true
+});
+rxBodyMutations.subscribe(mutations => {
+    // Update item observations.
+    itemObservations.forEach(it => {
+        if (!document.body.contains(it.node)) {
+            unobserveItem(it.node);
+        }
+    });
+    $(selectors.searchResultItem).toArray().forEach(observeItem);
+});
 
-    // Track added and removed items.
-    const rxChildMutations = mutationObservable(listElement, { childList: true })
-        .pipe(
-            rx.concatAll(),
-            rx.share()
-        );
-    rxChildMutations
-        .pipe(
-            rx.concatMap(mutation => rx.from(mutation.addedNodes)),
-            rx.filter(node => node.nodeType === Node.ELEMENT_NODE)
-        )
-        .subscribe(observeItem);
-    rxChildMutations
-        .pipe(
-            rx.concatMap(mutation => rx.from(mutation.removedNodes)),
-            rx.filter(node => node.nodeType === Node.ELEMENT_NODE)
-        )
-        .subscribe(unobserveItem);
-};
-
-// Start observing the result list as soon as it appears.
-const $resultList = $(selectors.searchResultContainer)
-const rxResultList = $resultList.length ? rx.observable.of($resultList[0]) :
-    mutationObservable(document.body, { subtree: true, childList: true }).pipe(
-        rx.concatAll(),
-        rx.filter(mutation => mutation.type === 'childList'),
-        rx.concatMap(mutation => rx.from(mutation.addedNodes)),
-        rx.filter(node => node.nodeType == Node.ELEMENT_NODE && $(node).is(selectors.searchResultContainer)),
-        rx.first()
-    );
-rxResultList.subscribe(observeList);
-
-// Subscribe to search result item changes and hide unwanted items.
 rxChangedItems.subscribe(element => {
-    if (isUnwantedResult(element)) {
-        hideItem(element);
-    }
+    toggleItem(element, !isUnwantedResult(element));
 });
