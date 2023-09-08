@@ -156,11 +156,9 @@ const rxBodyMutations = mutationObservable(document.body, {
 });
 rxBodyMutations.subscribe(mutations => {
     // Update item observations.
-    itemObservations.forEach(it => {
-        if (!document.body.contains(it.node)) {
-            unobserveItem(it.node);
-        }
-    });
+    itemObservations
+        .filter(it => !document.body.contains(it.node))
+        .forEach(it => unobserve(it.node));
     $(selectors.searchResultItem).toArray().forEach(observeItem);
 });
 
