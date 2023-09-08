@@ -7,8 +7,8 @@
 // @match        https://www.linkedin.com/jobs/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        none
-// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js
-// @require      https://cdnjs.cloudflare.com/ajax/libs/rxjs/7.8.1/rxjs.umd.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/rxjs/7.8.1/rxjs.umd.min.js
 // ==/UserScript==
 
 'use strict';
