@@ -150,6 +150,11 @@ const unobserveItem = itemElement => {
 };
 
 const observeList = listElement => {
+    // Observe items already in the list.
+    for (const item of $(listElement).find(selectors.searchResultItem).toArray()) {
+        observeItem(item);
+    }
+
     // Track added and removed items.
     const rxChildMutations = mutationObservable(listElement, { childList: true })
         .pipe(
