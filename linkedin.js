@@ -34,31 +34,37 @@ const selectors = {
 const $ = window.jQuery;
 const rx = this.rxjs;
 
-const searchTerms = location => {
-    const terms = [];
-    const match = (/^\/jobs\/([^/]+)\//).exec(location.pathname);
-    pathMatch:
+const jobPathTerms = path => {
+    let terms = [];
+    const match = (/^\/jobs\/([^/]+)\//).exec(path);
     if (match) {
         const searchString = decodeURIComponent(match[1]);
-        if (searchString === 'search') break pathMatch;
-        const pathTerms = searchString.split(/-+/);
-        for (let term of pathTerms) {
-            term = (term || '').trim();
-            if (term && !terms.includes(term)) {
-                terms.push(term);
-            }
+        if (searchString && searchString !== 'search') {
+            terms = terms.concat(searchString.split(/-+/));
         }
     }
-    const keywordsParam = new URLSearchParams(location.search).get('keywords')
+    return terms;
+};
+
+const jobQueryTerms = query => {
+    let terms = [];
+    const keywordsParam = new URLSearchParams(location.search).get('keywords');
     if (keywordsParam) {
-        const queryTerms = decodeURIComponent(keywordsParam).split(/\s+/);
-        for (let term of queryTerms) {
-            term = (term || '').trim();
-            if (term && !terms.includes(term)) {
-                terms.push(term);
-            }
-        }
+        terms = terms.concat(keywordsParam.split(/\s+/));
     }
+    return terms;
+};
+
+
+const searchTerms = location => {
+    const terms = [], termSet = {};
+    jobPathTerms(location.pathname)
+        .concat(jobQueryTerms(location.search))
+        .forEach(s => {
+            if (s in termSet) return;
+            terms.push(s);
+            termSet[s] = true;
+        });
     return terms;
 };
 
@@ -66,14 +72,14 @@ const filterTitle = title => {
     title = title.toLowerCase();
     if ((/manager|lead|test/).test(title)) return false;
 
-    const terms = searchTerms(window.location)
-        .map(s => {
-            s = s.trim();
-            if ((/^"[^"]*"$/).test(s) || (/^'[^']*'$/).test(s)) {
-                s = s.substring(1, s.length - 1).trim();
-            }
-            return s.trim().toLowerCase();
-        });
+    const terms = searchTerms(window.location).map(s => {
+        s = s.trim();
+        let match;
+        if ((match = (/^"([^"]*)"$/).exec(s)) || (match = (/^'([^']*)'$/).exec(s))) {
+            s = match[1].trim();
+        }
+        return s.toLowerCase();
+    });
     if (terms.includes('android')) {
         if (!(/\b(android|mobile)\b/i).test(title)) return false;
         if ((/automotive/i).test(title)) return false;
