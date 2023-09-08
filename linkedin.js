@@ -4,7 +4,7 @@
 // @version      0.1
 // @description  Filtering script for LinkedIn job search results
 // @author       Myles Williams
-// @match        https://www.linkedin.com/jobs/*
+// @match        https://www.linkedin.com/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
