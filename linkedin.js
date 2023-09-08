@@ -111,7 +111,7 @@ const hideItem = element => {
 };
 
 const itemObservations = [];
-const changedItems = new rx.Subject();
+const rxChangedItems = new rx.Subject();
 
 const mutationObservable = (target, options) =>
     new rx.Observable(subscriber => {
@@ -125,14 +125,14 @@ const mutationObservable = (target, options) =>
 const observeItem = itemElement => {
     if (itemObservations.some(observation => observation.node === itemElement)) return;
     // Publish this element to the changedItems subject now and each time it changes.
-    changedItems.next(itemElement);
+    rxChangedItems.next(itemElement);
     const rxItemChanges = mutationObservable(itemElement, {
         subtree: true,
         childList: true,
         attributes: true,
         characterData: true
     });
-    const subscription = rxItemChanges.subscribe(mutations => changedItems.next(itemElement));
+    const subscription = rxItemChanges.subscribe(mutations => rxChangedItems.next(itemElement));
     itemObservations.push({ node: itemElement, subscription });
 };
 
@@ -177,7 +177,7 @@ const rxResultList = $resultList.length ? rx.observable.of($resultList[0]) :
 rxResultList.subscribe(observeList);
 
 // Subscribe to search result item changes and hide unwanted items.
-changedItems.subscribe(element => {
+rxChangedItems.subscribe(element => {
     if (isUnwantedResult(element)) {
         hideItem(element);
     }
