@@ -148,7 +148,6 @@ const observeList = listElement => {
     const rxChildMutations = mutationObservable(listElement, { childList: true })
         .pipe(
             rx.concatAll(),
-            rx.filter(mutation => mutation.type === 'childList'),
             rx.share()
         );
     rxChildMutations
@@ -177,10 +176,9 @@ const rxResultList = $resultList.length ? rx.observable.of($resultList[0]) :
     );
 rxResultList.subscribe(observeList);
 
-// Subscribe to search result item changes and hide any undesirable item.
+// Subscribe to search result item changes and hide unwanted items.
 changedItems.subscribe(element => {
     if (isUnwantedResult(element)) {
         hideItem(element);
-        //unobserveItem(element);
     }
 });
