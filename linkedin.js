@@ -54,7 +54,6 @@ const jobQueryTerms = query => {
     return terms;
 };
 
-
 const searchTerms = location => {
     const terms = [], termSet = {};
     jobPathTerms(location.pathname)
@@ -124,7 +123,13 @@ const mutationObservable = (target, options) =>
             subscriber.next(mutationList);
         });
         observer.observe(target, options);
-        subscriber.add(() => observer.disconnect());
+        subscriber.add(() => {
+            const finalRecords = observer.takeRecords();
+            observer.disconnect();
+            if (finalRecords.length) {
+                subscriber.next(finalRecords);
+            }
+        });
     });
 
 const observeItem = element => {
