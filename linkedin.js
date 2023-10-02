@@ -163,7 +163,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
         // Update item observations.
         itemObservations
             .filter(it => !document.body.contains(it.node))
-            .forEach(it => unobserve(it.node));
+            .forEach(it => unobserveItem(it.node));
         $(selectors.searchResultItem).toArray().forEach(observeItem);
     });
 
