@@ -39,31 +39,24 @@ require(['jquery', 'rxjs'], ($, rx) => {
         if (match) {
             const searchString = decodeURIComponent(match[1]);
             if (searchString && searchString !== 'search') {
-                terms = terms.concat(searchString.split(/-+/));
+                terms = searchString.split(/-+/);
             }
         }
         return terms;
     };
 
     const jobQueryTerms = query => {
-        let terms = [];
-        const keywordsParam = new URLSearchParams(location.search).get('keywords');
-        if (keywordsParam) {
-            terms = terms.concat(keywordsParam.split(/\s+/));
-        }
-        return terms;
+        const keywordsParam = new URLSearchParams(query).get('keywords');
+        return keywordsParam ? keywordsParam.split(/\s+/) : [];
     };
 
     const searchTerms = location => {
-        const terms = [], termSet = {};
-        jobPathTerms(location.pathname)
-            .concat(jobQueryTerms(location.search))
-            .forEach(s => {
-                if (s in termSet) return;
-                terms.push(s);
-                termSet[s] = true;
-            });
-        return terms;
+        const termSet = {};
+        return [...jobPathTerms(location.pathname), ...jobQueryTerms(location.search)].filter(s => {
+            if (s in termSet) return false;
+            termSet[s] = true;
+            return true;
+        });
     };
 
     const filterTitle = title => {
