@@ -33,13 +33,32 @@ require(['jquery', 'rxjs'], ($, rx) => {
         jobMetadataItem: 'li.job-card-container__metadata-item'
     }
 
+    const splitTerms = s => {
+        const terms = [];
+        while (s = s.trimStart()) {
+            let term;
+            if (s.startsWith('"') || s.startsWith('\'')) {
+                const end = s.indexOf(s.charAt(0), 1);
+                term = s.substring(1, end >= 0 ? end : s.length);
+                s = end >= 0 ? s.substring(end + 1) : '';
+            } else {
+                const match = s.match(/\s|'|"/);
+                const end = match ? match[0].index : s.length;
+                term = s.substring(0, end);
+                s = s.substring(end);
+            }
+            terms.push(term);
+        }
+        return terms;
+    };
+
     const jobPathTerms = path => {
         let terms = [];
-        const match = (/^\/jobs\/([^/]+)\//).exec(path);
+        const match = path.match(/^\/jobs\/([^/]+)\//);
         if (match) {
-            const searchString = decodeURIComponent(match[1]);
+            const searchString = decodeURIComponent(match[1])
             if (searchString && searchString !== 'search') {
-                terms = searchString.split(/-+/);
+                terms = splitTerms(searchString.replaceAll('-', ' '));
             }
         }
         return terms;
@@ -47,7 +66,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
 
     const jobQueryTerms = query => {
         const keywordsParam = new URLSearchParams(query).get('keywords');
-        return keywordsParam ? keywordsParam.split(/\s+/) : [];
+        return keywordsParam ? splitTerms(keywordsParam) : [];
     };
 
     const searchTerms = location => {
@@ -63,14 +82,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
         title = title.toLowerCase();
         if ((/manager|lead|test/).test(title)) return false;
 
-        const terms = searchTerms(window.location).map(s => {
-            s = s.trim();
-            let match;
-            if ((match = (/^"([^"]*)"$/).exec(s)) || (match = (/^'([^']*)'$/).exec(s))) {
-                s = match[1].trim();
-            }
-            return s.toLowerCase();
-        });
+        const terms = searchTerms(window.location).map(s => s.trim().toLowerCase());
         if (terms.includes('android')) {
             if (!(/\b(android|mobile)\b/i).test(title)) return false;
             if ((/automotive/i).test(title)) return false;
