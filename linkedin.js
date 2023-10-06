@@ -102,8 +102,10 @@ require(['jquery', 'rxjs'], ($, rx) => {
 
         const jobLocation = $element.find(selectors.jobMetadataItem).eq(0).text().trim();
         if (jobLocation) {
-            const searchLocation = (new URLSearchParams(window.location.search).get('location') || '').trim();
-            if (searchLocation.toLowerCase() !== 'united states' && jobLocation.match(/^united states\b/i)) {
+            const searchParams = new URLSearchParams(window.location.search);
+            const searchLocation = (searchParams.get('location') || '').trim();
+            const geoId = searchParams.get('geoId');
+            if ((searchLocation.toLowerCase() !== 'united states' && geoId !== '103644278') && jobLocation.match(/^united states\b/i)) {
                 return true;
             }
         }
