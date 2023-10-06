@@ -6,7 +6,8 @@
 // @author       Myles Williams
 // @match        https://www.linkedin.com/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
-// @grant        none
+// @grant        GM_registerMenuCommand
+// @grant        GM_unregisterMenuCommand
 // @require      https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/rxjs/7.8.1/rxjs.umd.min.js
@@ -116,7 +117,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
     }
 
     const toggleItem = (element, visible) => {
-        $(element).css('visibility', visible ? 'visible' : 'hidden');
+        $(element).toggleClass('jm-hidden', !visible);
     };
 
     const itemObservations = [];
@@ -158,6 +159,28 @@ require(['jquery', 'rxjs'], ($, rx) => {
         itemObservations[i].subscription.unsubscribe();
         itemObservations.splice(i, 1);
     };
+
+    let filterEnabled = true;
+    const filterStyle = document.createElement('style');
+    filterStyle.setAttribute('type', 'text/css');
+    filterStyle.textContent = '.jm-hidden { visibility: hidden; }';
+    document.head.appendChild(filterStyle);
+
+    const menuCommands = [];
+    const registerMenuCommands = () => {
+        while (menuCommands.length) {
+            GM_unregisterMenuCommand(menuCommands.pop());
+        }
+        menuCommands.push(
+            GM_registerMenuCommand(
+                filterEnabled ? 'Disable filter' : 'Enable filter',
+                (tab, evt) => {
+                    filterEnabled = !filterEnabled;
+                    filterStyle.disabled = !filterEnabled;
+                    registerMenuCommands();
+                }));
+    };
+    registerMenuCommands();
 
     const rxBodyMutations = mutationObservable(document.body, {
         childList: true,
