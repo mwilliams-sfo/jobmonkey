@@ -29,6 +29,9 @@ require(['jquery', 'rxjs'], ($, rx) => {
 
     const selectors = {
         searchResultItem: 'li.jobs-search-results__list-item',
+        hiddenItem: '.jm-hidden',
+        searchResultItemClickable: '.job-card-container--clickable',
+        searchResultItemActive: '.jobs-search-results-list__list-item--active',
         jobTitle: '.job-card-list__title',
         jobCompany: '.job-card-container__company-name, .job-card-container__primary-description',
         jobMetadataItem: 'li.job-card-container__metadata-item'
@@ -168,6 +171,17 @@ require(['jquery', 'rxjs'], ($, rx) => {
     filterStyle.textContent = '.jm-hidden { visibility: hidden; }';
     document.head.appendChild(filterStyle);
 
+    const fixSelection = () => {
+        if (!filterEnabled) return;
+        const $activeItem = $(selectors.searchResultItem).has(selectors.searchResultItemActive);
+        if (!$activeItem.is(selectors.hiddenItem)) return;
+        const $newActive = $activeItem.nextAll(selectors.searchResultItem).not(selectors.hiddenItem).first();
+        if (!$newActive.length) {
+            $newActive.pushStack($(selectors.searchResultItem).not(selectors.hiddenItem).first());
+        }
+        $newActive.find(selectors.searchResultItemClickable).trigger('click');
+    };
+
     const menuCommands = [];
     const registerMenuCommands = () => {
         while (menuCommands.length) {
@@ -179,6 +193,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
                 (tab, evt) => {
                     filterEnabled = !filterEnabled;
                     filterStyle.disabled = !filterEnabled;
+                    fixSelection();
                     registerMenuCommands();
                 }));
     };
@@ -199,5 +214,6 @@ require(['jquery', 'rxjs'], ($, rx) => {
 
     rxChangedItems.subscribe(element => {
         toggleItem(element, !isUnwantedResult(element));
+        fixSelection();
     });
 });
