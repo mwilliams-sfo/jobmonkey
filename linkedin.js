@@ -48,7 +48,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
                 s = end >= 0 ? s.substring(end + 1) : '';
             } else {
                 const match = s.match(/\s|'|"/);
-                const end = match ? match[0].index : s.length;
+                const end = match ? match.index : s.length;
                 term = s.substring(0, end);
                 s = s.substring(end);
             }
