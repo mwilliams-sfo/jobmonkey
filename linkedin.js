@@ -86,12 +86,12 @@ require(['jquery', 'rxjs'], ($, rx) => {
 
     const filterTitle = title => {
         title = title.toLowerCase();
-        if ((/manager|lead|test/).test(title)) return false;
+        if (title.match(/\b(?:manager|principal|lead|test|qa)\b/)) return false;
 
         const terms = searchTerms(window.location).map(s => s.trim().toLowerCase());
         if (terms.includes('android')) {
-            if (!(/\b(android|mobile)\b/i).test(title)) return false;
-            if ((/automotive/i).test(title)) return false;
+            if (!title.match(/\b(android|mobile)\b/i)) return false;
+            if (title.match(/\bautomotive\b/i)) return false;
         }
 
         return true;
