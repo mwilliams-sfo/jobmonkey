@@ -18,6 +18,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
     'use strict';
 
     const companyExclusions = [
+        /\bai\b/i,
         /consult/i,
         /infote/i,
         /\bgroup\b/i,
