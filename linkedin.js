@@ -97,6 +97,10 @@ require(['jquery', 'rxjs'], ($, rx) => {
         return true;
     };
 
+    const isUnitedStatesSearch = params =>
+        (params.get('location') || '').trim().toLowerCase() === 'united states' ||
+            params.get('geoId') === '103644278';
+
     const isUnwantedResult = element => {
         const $element = $(element);
 
@@ -108,9 +112,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
         const jobLocation = $element.find(selectors.jobMetadataItem).eq(0).text().trim();
         if (jobLocation) {
             const searchParams = new URLSearchParams(window.location.search);
-            const searchLocation = (searchParams.get('location') || '').trim();
-            const geoId = searchParams.get('geoId');
-            if ((searchLocation.toLowerCase() !== 'united states' && geoId !== '103644278') && jobLocation.match(/^united states\b/i)) {
+            if (jobLocation.match(/^united states\b/i) && !isUnitedStatesSearch(searchParams)) {
                 return true;
             }
         }
@@ -121,7 +123,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
         }
 
         return false;
-    }
+    };
 
     const toggleItem = (element, visible) => {
         $(element).toggleClass('jm-hidden', !visible);
