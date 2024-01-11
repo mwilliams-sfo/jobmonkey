@@ -173,6 +173,16 @@ require(['jquery', 'rxjs'], ($, rx) => {
         itemObservations.splice(i, 1);
     };
 
+    const isSuggestedPost = feedItem =>
+        $(feedItem).find(selectors.feedItemHeaderText).eq(0)
+            .is((_, headerText) => $(headerText).text().trim() === 'Suggested');
+
+    const hideSuggestedPosts = () => {
+        $(selectors.feedItem)
+            .filter((_, item) => isSuggestedPost(item))
+            .addClass('jm-gone');
+    };
+
     let filterEnabled = true;
     const filterStyle = document.createElement('style');
     filterStyle.setAttribute('type', 'text/css');
@@ -188,15 +198,6 @@ require(['jquery', 'rxjs'], ($, rx) => {
             $newActive.pushStack($(selectors.searchResultItem).not(selectors.hiddenItem).first());
         }
         $newActive.find(selectors.searchResultItemClickable).trigger('click');
-    };
-
-    const hideSuggestedPosts = () => {
-        $(selectors.feedItem)
-            .filter((_, item) => {
-                const $itemHeaderText = $(item).find(selectors.feedItemHeaderText).eq(0);
-                return $itemHeaderText.length > 0 && $itemHeaderText.text().trim() === 'Suggested';
-            })
-            .addClass('jm-gone');
     };
 
     const menuCommands = [];
