@@ -30,13 +30,17 @@ require(['jquery', 'rxjs'], ($, rx) => {
     ];
 
     const selectors = {
+        feedItem: 'div[data-finite-scroll-hotkey-context=FEED] > div',
+        feedItemHeaderText: '.update-components-header .update-components-header__text-view',
+
         searchResultItem: 'li.jobs-search-results__list-item',
-        hiddenItem: '.jm-hidden',
         searchResultItemClickable: '.job-card-container--clickable',
         searchResultItemActive: '.jobs-search-results-list__list-item--active',
         jobTitle: '.job-card-list__title',
         jobCompany: '.job-card-container__company-name, .job-card-container__primary-description',
-        jobMetadataItem: 'li.job-card-container__metadata-item'
+        jobMetadataItem: 'li.job-card-container__metadata-item',
+
+        hiddenItem: '.jm-hidden'
     }
 
     const splitTerms = s => {
@@ -172,7 +176,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
     let filterEnabled = true;
     const filterStyle = document.createElement('style');
     filterStyle.setAttribute('type', 'text/css');
-    filterStyle.textContent = '.jm-hidden { visibility: hidden; }';
+    filterStyle.textContent = '.jm-hidden { visibility: hidden; } .jm-gone { display: none; }';
     document.head.appendChild(filterStyle);
 
     const fixSelection = () => {
@@ -184,6 +188,15 @@ require(['jquery', 'rxjs'], ($, rx) => {
             $newActive.pushStack($(selectors.searchResultItem).not(selectors.hiddenItem).first());
         }
         $newActive.find(selectors.searchResultItemClickable).trigger('click');
+    };
+
+    const hideSuggestedPosts = () => {
+        $(selectors.feedItem)
+            .filter((_, item) => {
+                const $itemHeaderText = $(item).find(selectors.feedItemHeaderText).eq(0);
+                return $itemHeaderText.length > 0 && $itemHeaderText.text().trim() === 'Suggested';
+            })
+            .addClass('jm-gone');
     };
 
     const menuCommands = [];
@@ -209,6 +222,10 @@ require(['jquery', 'rxjs'], ($, rx) => {
         subtree: true
     });
     rxBodyMutations.subscribe(mutations => {
+        if (window.location.pathname === '/feed/') {
+            hideSuggestedPosts();
+        }
+
         // Update item observations.
         itemObservations
             .filter(it => !document.body.contains(it.node))
