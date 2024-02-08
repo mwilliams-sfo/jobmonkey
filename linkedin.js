@@ -20,11 +20,13 @@ require(['jquery', 'rxjs'], ($, rx) => {
     const companyExclusions = [
         /\bai\b/i,
         /consult/i,
-        /infote/i,
         /\bgroup\b/i,
+        /infote/i,
         /^intelli/i,
+	/ llc$/i,
         /resourc/i,
         /solutions/i,
+	/staffing/i,
         /^tek/i,
         /tek\b/i
     ];
