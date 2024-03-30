@@ -96,7 +96,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
 
         const terms = searchTerms(window.location).map(s => s.trim().toLowerCase());
         if (terms.includes('android')) {
-            if (!title.match(/\b(android|mobile)\b/i)) return false;
+            if (!title.match(/\b(?:android|mobile)\b/i)) return false;
             if (title.match(/\bautomotive\b/i)) return false;
         }
 
