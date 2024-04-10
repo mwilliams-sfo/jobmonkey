@@ -172,8 +172,8 @@ require(['jquery', 'rxjs'], ($, rx) => {
     const unobserveItem = element => {
         const i = itemObservations.findIndex(it => it.node === element);
         if (i < 0) return;
-        itemObservations[i].subscription.unsubscribe();
-        itemObservations.splice(i, 1);
+        const deleted = itemObservations.splice(i, 1);
+        deleted.forEach(it => it.subscription.unsubscribe());
     };
 
     const isSuggestedPost = feedItem =>
