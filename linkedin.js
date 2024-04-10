@@ -188,6 +188,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
 
     let filterEnabled = true;
     const filterStyle = GM_addStyle(
+        '.coach-mark-list__container { display: none; }\n' +
         '.jm-hidden { visibility: hidden; }\n' +
         '.jm-gone { display: none; }\n');
 
