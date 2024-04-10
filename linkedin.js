@@ -6,6 +6,7 @@
 // @author       Myles Williams
 // @match        https://www.linkedin.com/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
+// @grant        GM_addStyle
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @require      https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js
@@ -186,10 +187,9 @@ require(['jquery', 'rxjs'], ($, rx) => {
     };
 
     let filterEnabled = true;
-    const filterStyle = document.createElement('style');
-    filterStyle.setAttribute('type', 'text/css');
-    filterStyle.textContent = '.jm-hidden { visibility: hidden; } .jm-gone { display: none; }';
-    document.head.appendChild(filterStyle);
+    const filterStyle = GM_addStyle(
+        '.jm-hidden { visibility: hidden; }\n' +
+        '.jm-gone { display: none; }\n');
 
     const fixSelection = () => {
         if (!filterEnabled) return;
