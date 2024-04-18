@@ -145,13 +145,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
                 subscriber.next(mutationList);
             });
             observer.observe(target, options);
-            subscriber.add(() => {
-                const finalRecords = observer.takeRecords();
-                observer.disconnect();
-                if (finalRecords.length) {
-                    subscriber.next(finalRecords);
-                }
-            });
+            return () => { observer.disconnect(); };
         });
 
     const observeItem = element => {
