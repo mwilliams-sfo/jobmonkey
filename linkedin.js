@@ -83,10 +83,10 @@ require(['jquery', 'rxjs'], ($, rx) => {
     };
 
     const searchTerms = location => {
-        const termSet = {};
+        const termSet = new Set();
         return [...jobPathTerms(location.pathname), ...jobQueryTerms(location.search)].filter(s => {
-            if (s in termSet) return false;
-            termSet[s] = true;
+            if (termSet.has(s)) return false;
+            termSet.add(s);
             return true;
         });
     };
