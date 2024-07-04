@@ -10,12 +10,11 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @require      https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js
-// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/rxjs/7.8.1/rxjs.umd.min.js
 // ==/UserScript==
 
 /*global require */
-require(['jquery', 'rxjs'], ($, rx) => {
+require(['rxjs'], rx => {
     'use strict';
 
     const companyExclusions = [
@@ -42,8 +41,6 @@ require(['jquery', 'rxjs'], ($, rx) => {
         jobTitle: '.job-card-list__title',
         jobCompany: '.job-card-container__company-name, .job-card-container__primary-description',
         jobMetadataItem: 'li.job-card-container__metadata-item',
-
-        hiddenItem: '.jm-hidden'
     }
 
     const splitTerms = s => {
@@ -109,14 +106,10 @@ require(['jquery', 'rxjs'], ($, rx) => {
             params.get('geoId') === '103644278';
 
     const isUnwantedResult = element => {
-        const $element = $(element);
+        const title = element.querySelector(selectors.jobTitle)?.textContent?.trim() ?? '';
+        if (title && !filterTitle(title)) return true;
 
-        const title = $element.find(selectors.jobTitle).text().trim();
-        if (title && !filterTitle(title)) {
-            return true;
-        }
-
-        const jobLocation = $element.find(selectors.jobMetadataItem).eq(0).text().trim();
+        const jobLocation = element.querySelector(selectors.jobMetadataItem)?.textContent?.trim() ?? '';
         if (jobLocation) {
             const searchParams = new URLSearchParams(window.location.search);
             if (jobLocation.match(/^united states\b/i) && !isUnitedStatesSearch(searchParams)) {
@@ -124,7 +117,7 @@ require(['jquery', 'rxjs'], ($, rx) => {
             }
         }
 
-        const companyName = $element.find(selectors.jobCompany).text().trim();
+        const companyName = element.querySelector(selectors.jobCompany)?.textContent?.trim() ?? '';
         if (companyName && companyExclusions.some(re => { re.lastIndex = 0; return re.test(companyName); })) {
             return true;
         }
@@ -132,8 +125,11 @@ require(['jquery', 'rxjs'], ($, rx) => {
         return false;
     };
 
+    const isHiddenItem = element =>
+        element.classList.contains('jm-hidden');
+
     const toggleItem = (element, visible) => {
-        $(element).toggleClass('jm-hidden', !visible);
+        element.classList.toggle('jm-hidden', !visible);
     };
 
     const itemObservations = [];
@@ -171,14 +167,12 @@ require(['jquery', 'rxjs'], ($, rx) => {
     };
 
     const isSuggestedPost = feedItem =>
-        $(feedItem).find(selectors.feedItemHeaderText).eq(0)
-            .is((_, headerText) => $(headerText).text().trim() === 'Suggested');
+        feedItem.querySelector(selectors.feedItemHeaderText)?.textContent?.trim() === 'Suggested';
 
-    const hideSuggestedPosts = () => {
-        $(selectors.feedItem)
-            .filter((_, item) => isSuggestedPost(item))
-            .addClass('jm-gone');
-    };
+    const hideSuggestedPosts = () =>
+        Array.from(document.querySelectorAll(selectors.feedItem))
+            .filter(isSuggestedPost)
+            .forEach(it => it.classList.toggle('jm-gone', true));
 
     let filterEnabled = true;
     const filterStyle = GM_addStyle(
@@ -188,13 +182,14 @@ require(['jquery', 'rxjs'], ($, rx) => {
 
     const fixSelection = () => {
         if (!filterEnabled) return;
-        const $activeItem = $(selectors.searchResultItem).has(selectors.searchResultItemActive);
-        if (!$activeItem.is(selectors.hiddenItem)) return;
-        const $newActive = $activeItem.nextAll(selectors.searchResultItem).not(selectors.hiddenItem).first();
-        if (!$newActive.length) {
-            $newActive.pushStack($(selectors.searchResultItem).not(selectors.hiddenItem).first());
+        const items = Array.from(document.querySelectorAll(selectors.searchResultItem));
+        const activeIndex = items.findIndex(it => it.querySelector(selectors.searchResultItemActive));
+        if (activeIndex >= 0 && !isHiddenItem(items[activeIndex]) return;
+        let newActive = items.slice(activeIndex + 1).find(it => !isHiddenItem(it));
+        if (activeIndex >= 0) {
+            newActive ??= items.slice(0, activeIndex).find(it => !isHiddenItem(it));
         }
-        $newActive.find(selectors.searchResultItemClickable).trigger('click');
+        newActive?.querySelector(selectors.searchResultItemClickable)?.click();
     };
 
     const menuCommands = [];
@@ -224,11 +219,11 @@ require(['jquery', 'rxjs'], ($, rx) => {
             hideSuggestedPosts();
         }
 
-        // Update item observations.
+        // Update job item observations.
         itemObservations
             .filter(it => !document.body.contains(it.node))
             .forEach(it => unobserveItem(it.node));
-        $(selectors.searchResultItem).toArray().forEach(observeItem);
+        document.querySelectorAll(selectors.searchResultItem).forEach(observeItem);
     });
 
     rxChangedItems.subscribe(element => {
