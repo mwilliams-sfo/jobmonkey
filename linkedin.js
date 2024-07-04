@@ -125,15 +125,15 @@ require(['rxjs'], rx => {
         return false;
     };
 
-    const isHiddenItem = element =>
+    const isHiddenResult = element =>
         element.classList.contains('jm-hidden');
 
-    const toggleItem = (element, visible) => {
+    const toggleResult = (element, visible) => {
         element.classList.toggle('jm-hidden', !visible);
     };
 
-    const itemObservations = [];
-    const rxChangedItems = new rx.Subject();
+    const resultObservations = [];
+    const rxChangedResults = new rx.Subject();
 
     const mutationObservable = (target, options) =>
         new rx.Observable(subscriber => {
@@ -144,25 +144,25 @@ require(['rxjs'], rx => {
             return () => { observer.disconnect(); };
         });
 
-    const observeItem = element => {
-        if (itemObservations.some(it => it.node === element)) return;
+    const observeResult = element => {
+        if (resultObservations.some(it => it.node === element)) return;
 
         // Publish this element to the changed items subject now and every time it changes.
-        rxChangedItems.next(element);
+        rxChangedResults.next(element);
         const rxItemMutations = mutationObservable(element, {
             childList: true,
             attributes: true,
             characterData: true,
             subtree: true
         });
-        const subscription = rxItemMutations.subscribe(mutations => rxChangedItems.next(element));
-        itemObservations.push({ node: element, subscription });
+        const subscription = rxItemMutations.subscribe(mutations => rxChangedResults.next(element));
+        resultObservations.push({ node: element, subscription });
     };
 
-    const unobserveItem = element => {
-        const i = itemObservations.findIndex(it => it.node === element);
+    const unobserveResult = element => {
+        const i = resultObservations.findIndex(it => it.node === element);
         if (i < 0) return;
-        const deleted = itemObservations.splice(i, 1);
+        const deleted = resultObservations.splice(i, 1);
         deleted.forEach(it => it.subscription.unsubscribe());
     };
 
@@ -182,12 +182,12 @@ require(['rxjs'], rx => {
 
     const fixSelection = () => {
         if (!filterEnabled) return;
-        const items = Array.from(document.querySelectorAll(selectors.searchResultItem));
-        const activeIndex = items.findIndex(it => it.querySelector(selectors.searchResultItemActive));
-        if (activeIndex >= 0 && !isHiddenItem(items[activeIndex]) return;
-        let newActive = items.slice(activeIndex + 1).find(it => !isHiddenItem(it));
+        const results = Array.from(document.querySelectorAll(selectors.searchResultItem));
+        const activeIndex = results.findIndex(it => it.querySelector(selectors.searchResultItemActive));
+        if (activeIndex >= 0 && !isHiddenResult(results[activeIndex])) return;
+        let newActive = results.slice(activeIndex + 1).find(it => !isHiddenResult(it));
         if (activeIndex >= 0) {
-            newActive ??= items.slice(0, activeIndex).find(it => !isHiddenItem(it));
+            newActive ??= results.slice(0, activeIndex).find(it => !isHiddenResult(it));
         }
         newActive?.querySelector(selectors.searchResultItemClickable)?.click();
     };
@@ -220,14 +220,14 @@ require(['rxjs'], rx => {
         }
 
         // Update job item observations.
-        itemObservations
+        resultObservations
             .filter(it => !document.body.contains(it.node))
-            .forEach(it => unobserveItem(it.node));
-        document.querySelectorAll(selectors.searchResultItem).forEach(observeItem);
+            .forEach(it => unobserveResult(it.node));
+        document.querySelectorAll(selectors.searchResultItem).forEach(observeResult);
     });
 
-    rxChangedItems.subscribe(element => {
-        toggleItem(element, !isUnwantedResult(element));
+    rxChangedResults.subscribe(element => {
+        toggleResult(element, !isUnwantedResult(element));
         fixSelection();
     });
 });
