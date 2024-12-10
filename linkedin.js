@@ -35,12 +35,12 @@ require(['rxjs'], rx => {
         feedItem: 'div[data-finite-scroll-hotkey-context=FEED] > div',
         feedItemHeaderText: '.update-components-header .update-components-header__text-view',
 
-        searchResultItem: 'li.jobs-search-results__list-item',
+        searchResultItem: 'li.scaffold-layout__list-item',
         searchResultItemClickable: '.job-card-container--clickable',
         searchResultItemActive: '.jobs-search-results-list__list-item--active',
-        jobTitle: '.job-card-list__title',
-        jobCompany: '.job-card-container__company-name, .job-card-container__primary-description',
-        jobMetadataItem: 'li.job-card-container__metadata-item',
+        jobTitle: '.artdeco-entity-lockup__title',
+        jobSubtitle: '.artdeco-entity-lockup__subtitle',
+        jobMetadataItem: 'ul.job-card-container__metadata-wrapper > li',
     }
 
     const splitTerms = s => {
@@ -117,7 +117,7 @@ require(['rxjs'], rx => {
             }
         }
 
-        const companyName = element.querySelector(selectors.jobCompany)?.textContent?.trim() ?? '';
+        const companyName = element.querySelector(selectors.jobSubtitle)?.textContent?.trim() ?? '';
         if (companyName && companyExclusions.some(re => { re.lastIndex = 0; return re.test(companyName); })) {
             return true;
         }
