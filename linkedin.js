@@ -7,6 +7,10 @@
 // @match        https://www.linkedin.com/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        GM_addStyle
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_addValueChangeListener
+// @grant        GM_removeValueChangeListener
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @require      https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js
@@ -174,14 +178,13 @@ require(['rxjs'], rx => {
             .filter(isSuggestedPost)
             .forEach(it => it.classList.toggle('jm-gone', true));
 
-    let filterEnabled = true;
     const filterStyle = GM_addStyle(
         '.coach-mark-list__container { display: none; }\n' +
         '.jm-hidden { visibility: hidden; }\n' +
         '.jm-gone { display: none; }\n');
 
     const fixSelection = () => {
-        if (!filterEnabled) return;
+        if (window.location.pathname !== '/jobs/search/') return;
         const results = Array.from(document.querySelectorAll(selectors.searchResultItem));
         const activeIndex = results.findIndex(it => it.querySelector(selectors.searchResultItemActive));
         if (activeIndex >= 0 && !isHiddenResult(results[activeIndex])) return;
@@ -192,22 +195,28 @@ require(['rxjs'], rx => {
         newActive?.querySelector(selectors.searchResultItemClickable)?.click();
     };
 
-    const menuCommands = [];
-    const registerMenuCommands = () => {
-        while (menuCommands.length) {
-            GM_unregisterMenuCommand(menuCommands.pop());
-        }
-        menuCommands.push(
-            GM_registerMenuCommand(
-                filterEnabled ? 'Disable filter' : 'Enable filter',
-                (tab, evt) => {
-                    filterEnabled = !filterEnabled;
-                    filterStyle.disabled = !filterEnabled;
-                    fixSelection();
-                    registerMenuCommands();
-                }));
-    };
-    registerMenuCommands();
+    const gmValueObservable = name =>
+        new rx.Observable(subscriber => {
+            subscriber.next(GM_getValue(name));
+            const listenerId = GM_addValueChangeListener(
+                name,
+                (name, oldValue, newValue, remote) => { subscriber.next(newValue); });
+            return () => { GM_removeValueChangeListener(listenerId); }
+        });
+    const rxFilterEnabled = gmValueObservable('filterEnabled');
+    rxFilterEnabled.subscribe(enabled => {
+        filterStyle.disabled = !enabled;
+        if (enabled) fixSelection();
+    });
+
+    const rxMenuModel = rx.combineLatest({ filterEnabled: rxFilterEnabled });
+    rxMenuModel.subscribe(model => {
+        GM_unregisterMenuCommand('filterEnabled');
+        GM_registerMenuCommand(
+            model.filterEnabled ? 'Disable filter' : 'Enable filter',
+            (tab, evt) => { GM_setValue('filterEnabled', !model.filterEnabled); },
+            { id: 'filterEnabled' });
+    });
 
     const rxBodyMutations = mutationObservable(document.body, {
         childList: true,
