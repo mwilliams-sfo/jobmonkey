@@ -69,9 +69,8 @@ const scrubJobDetails = details => {
   }
 };
 
-let feedObserver = null, jobListObserver = null, jobDetailsObserver = null;
-
-const bodyObserver = new MutationObserver((mutationList, observer) => {
+let feedObserver = null
+const observeFeed = () => {
   const feed = document.querySelector(selectors.feed);
   if (feed && !feedObserver) {
     feedObserver = new MutationObserver((mutationList, observer) => {
@@ -86,7 +85,10 @@ const bodyObserver = new MutationObserver((mutationList, observer) => {
     feedObserver.disconnect();
     feedObserver = null;
   }
+};
 
+let jobListObserver = null;
+const observeJobList = () => {
   const jobList = document.querySelector(selectors.jobList);
   if (jobList && !jobListObserver) {
     jobListObserver = new MutationObserver((mutationList, observer) => {
@@ -101,7 +103,10 @@ const bodyObserver = new MutationObserver((mutationList, observer) => {
     jobListObserver.disconnect();
     jobListObserver = null;
   }
+};
 
+let jobDetailsObserver = null;
+const observeJobDetails = () => {
   const details = document.querySelector(selectors.jobDetails);
   if (details && !jobDetailsObserver) {
     jobDetailsObserver = new MutationObserver((mutationList, observer) => {
@@ -116,6 +121,12 @@ const bodyObserver = new MutationObserver((mutationList, observer) => {
     jobDetailsObserver.disconnect();
     jobDetailsObserver = null;
   }
+};
+
+const bodyObserver = new MutationObserver((mutationList, observer) => {
+  observeFeed();
+  observeJobList();
+  observeJobDetails();
 });
 bodyObserver.observe(document.body, {
   childList: true,
