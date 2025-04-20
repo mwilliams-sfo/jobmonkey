@@ -2,6 +2,8 @@
 const selectors = {
   feed: 'div[data-finite-scroll-hotkey-context=FEED]',
   feedItemHeaderText: '.update-components-header .update-components-header__text-view',
+  feedNewsModule: '#feed-news-module',
+  games: '#todays-games-entrypoint-title, ul[aria-labelledby=todays-games-entrypoint-title]',
 
   jobList: '.jobs-search-two-pane__layout .scaffold-layout__list > div > ul',
   jobTitle: '.job-card-list__title--link strong',
@@ -87,6 +89,14 @@ const observeFeed = () => {
   }
 };
 
+const hideGames = () => {
+  const news = document.querySelector(selectors.feedNewsModule);
+  if (!news) return;
+  for (const node of news.querySelectorAll(selectors.games)) {
+    setGone(node, true);
+  }
+};
+
 let jobListObserver = null;
 const observeJobList = () => {
   const jobList = document.querySelector(selectors.jobList);
@@ -125,6 +135,8 @@ const observeJobDetails = () => {
 
 const bodyObserver = new MutationObserver((mutationList, observer) => {
   observeFeed();
+  hideGames();
+
   observeJobList();
   observeJobDetails();
 });
