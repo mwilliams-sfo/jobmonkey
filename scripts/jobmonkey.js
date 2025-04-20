@@ -87,6 +87,13 @@ const nodeRemoved = node =>
     observer.observe(document, { childList: true, subtree: true });
   });
 
+const addStyleSheet = text => {
+  const element = document.createElement('style');
+  element.appendChild(document.createTextNode(text));
+  document.head.appendChild(element);
+  return element.sheet;
+};
+
 const observeNode = async (node, options, callback) => {
   if (!node.ownerDocument) return;
   const nodeObserver = new MutationObserver(callback);
@@ -148,6 +155,10 @@ const observeJobDetails = () => {
   });
   jobDetailsObserved = true;
 };
+
+const styleSheet = addStyleSheet(
+  '.jm-gone { display: none !important; }\n' +
+  '.jm-hidden { visibility: hidden !important; }\n');
 
 observeNode(
   document.body,
