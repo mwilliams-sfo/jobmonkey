@@ -71,22 +71,44 @@ const scrubJobDetails = details => {
   }
 };
 
-let feedObserver = null
+const nodeRemoved = node =>
+  new Promise(resolve => {
+    const document = node.ownerDocument;
+    if (!document) {
+      resolve();
+      return;
+    }
+    const observer = new MutationObserver(mutationList => {
+      if (!document.contains(node)) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+    observer.observe(document, { childList: true, subtree: true });
+  });
+
+const observeNode = async (node, options, callback) => {
+  if (!node.ownerDocument) return;
+  const nodeObserver = new MutationObserver(callback);
+  nodeObserver.observe(node, options);
+  await nodeRemoved(node);
+  nodeObserver.disconnect();
+  return;
+};
+
+let feedObserved = false;
 const observeFeed = () => {
+  if (feedObserved) return;
   const feed = document.querySelector(selectors.feed);
-  if (feed && !feedObserver) {
-    feedObserver = new MutationObserver((mutationList, observer) => {
-      hideSuggestedPosts(feed);
-    });
-    feedObserver.observe(feed, {
-      childList: true,
-      attributes: true,
-      subtree: true,
-    });
-  } else if (!feed && feedObserver) {
-    feedObserver.disconnect();
-    feedObserver = null;
-  }
+  if (!feed) return;
+  observeNode(
+    feed,
+    { attributes: true, childList: true, subtree: true },
+    () => { hideSuggestedPosts(feed); }
+  ).then(() => {
+    feedObserved = false;
+  });
+  feedObserved = true;
 };
 
 const hideGames = () => {
@@ -97,51 +119,43 @@ const hideGames = () => {
   }
 };
 
-let jobListObserver = null;
+let jobListObserved = null;
 const observeJobList = () => {
+  if (jobListObserved) return;
   const jobList = document.querySelector(selectors.jobList);
-  if (jobList && !jobListObserver) {
-    jobListObserver = new MutationObserver((mutationList, observer) => {
-      scrubJobList(jobList);
-    });
-    jobListObserver.observe(jobList, {
-      childList: true,
-      attributes: true,
-      subtree: true,
-    });
-  } else if (!jobList && jobListObserver) {
-    jobListObserver.disconnect();
-    jobListObserver = null;
-  }
+  if (!jobList) return;
+  observeNode(
+    jobList,
+    { attributes: true, childList: true, subtree: true },
+    () => { scrubJobList(jobList); }
+  ).then(() => {
+    jobListObserved = false;
+  });
+  jobListObserved = true;
 };
 
-let jobDetailsObserver = null;
+let jobDetailsObserved = null;
 const observeJobDetails = () => {
+  if (jobDetailsObserved) return;
   const details = document.querySelector(selectors.jobDetails);
-  if (details && !jobDetailsObserver) {
-    jobDetailsObserver = new MutationObserver((mutationList, observer) => {
-      scrubJobDetails(details);
-    });
-    jobDetailsObserver.observe(details, {
-      childList: true,
-      attributes: true,
-      subtree: true,
-    });
-  } else if (!details && jobDetailsObserver) {
-    jobDetailsObserver.disconnect();
-    jobDetailsObserver = null;
-  }
+  if (!details) return;
+  observeNode(
+    details,
+    { attributes: true, childList: true, subtree: true },
+    () => { scrubJobDetails(details); }
+  ).then(() => {
+    jobDetailsObserved = false;
+  });
+  jobDetailsObserved = true;
 };
 
-const bodyObserver = new MutationObserver((mutationList, observer) => {
-  observeFeed();
-  hideGames();
+observeNode(
+  document.body,
+  { attributes: true, childList: true, subtree: true },
+  () => {
+    observeFeed();
+    hideGames();
 
-  observeJobList();
-  observeJobDetails();
-});
-bodyObserver.observe(document.body, {
-  childList: true,
-  attributes: true,
-  subtree: true,
-});
+    observeJobList();
+    observeJobDetails();
+  });
