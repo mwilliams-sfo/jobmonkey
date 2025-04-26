@@ -233,15 +233,15 @@ const observeFeed = () => {
   if (feedObserved) return;
   const feed = document.querySelector(selectors.feed);
   if (!feed) return;
-  scrubFeed(feed);
-  observeNode(
-    feed,
-    { attributes: true, childList: true, subtree: true },
-    () => { scrubFeed(feed); }
-  ).then(() => {
+  (async () => {
+    feedObserved = true;
+    scrubFeed(feed);
+    await observeNode(
+      feed,
+      { attributes: true, childList: true, subtree: true },
+      () => { scrubFeed(feed); });
     feedObserved = false;
-  });
-  feedObserved = true;
+  })();
 };
 
 let newsObserved = false;
@@ -249,15 +249,15 @@ const observeNews = () => {
   if (newsObserved) return;
   const news = document.querySelector(selectors.newsModule);
   if (!news) return;
-  scrubNews(news);
-  observeNode(
-    news,
-    { attributes: true, childList: true, subtree: true },
-    () => { scrubNews(news); }
-  ).then(() => {
+  (async () => {
+    newsObserved = true;
+    scrubNews(news);
+    await observeNode(
+      news,
+      { attributes: true, childList: true, subtree: true },
+      () => { scrubNews(news); });
     newsObserved = false;
-  });
-  newsObserved = true;
+  })();
 };
 
 let jobListObserved = null;
@@ -265,15 +265,15 @@ const observeJobList = () => {
   if (jobListObserved) return;
   const jobList = document.querySelector(selectors.jobList);
   if (!jobList) return;
-  scrubJobList(jobList);
-  observeNode(
-    jobList,
-    { attributes: true, childList: true, subtree: true },
-    () => { scrubJobList(jobList); }
-  ).then(() => {
+  (async () => {
+    jobListObserved = true;
+    scrubJobList(jobList);
+    await observeNode(
+      jobList,
+      { attributes: true, childList: true, subtree: true },
+      () => { scrubJobList(jobList); });
     jobListObserved = false;
-  });
-  jobListObserved = true;
+  })();
 };
 
 let jobDetailsObserved = null;
@@ -281,15 +281,15 @@ const observeJobDetails = () => {
   if (jobDetailsObserved) return;
   const details = document.querySelector(selectors.jobDetails);
   if (!details) return;
-  scrubJobDetails(details);
-  observeNode(
-    details,
-    { attributes: true, childList: true, subtree: true },
-    () => { scrubJobDetails(details); }
-  ).then(() => {
+  (async () => {
+    jobDetailsObserved = true;
+    scrubJobDetails(details);
+    await observeNode(
+      details,
+      { attributes: true, childList: true, subtree: true },
+      () => { scrubJobDetails(details); });
     jobDetailsObserved = false;
-  });
-  jobDetailsObserved = true;
+  })();
 };
 
 const styleSheet = addStyleSheet(
