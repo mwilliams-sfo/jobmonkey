@@ -80,9 +80,8 @@ const isSuggestedPost = feedItem =>
 
 const hideSuggestedPosts = feed => {
   for (const child of feed.childNodes) {
-    if (child.nodeType != Node.ELEMENT_NODE) continue;
-    if (child.tagName == 'DIV' && isSuggestedPost(child)) {
-      setGone(child, true);
+    if (child.nodeType == Node.ELEMENT_NODE && child.tagName == 'DIV') {
+      setGone(child, isSuggestedPost(child));
     }
   }
 };
@@ -130,10 +129,10 @@ const fixSelection = list => {
     otherJob && otherJob !== activeJob;
     otherJob = otherJob.nextSibling ?? list.firstChild
   ) {
-    if (otherJob.nodeType != Node.ELEMENT_NODE || otherJob.tagName != 'LI') {
-      continue;
-    }
-    if (!isHidden(otherJob)) {
+    if (
+      otherJob.nodeType == Node.ELEMENT_NODE && otherJob.tagName == 'LI' &&
+      !isHidden(otherJob)
+    ) {
       otherJob.querySelector(selectors.jobClickable)?.click();
       break;
     }
@@ -142,8 +141,9 @@ const fixSelection = list => {
 
 const scrubJobList = list => {
   for (const child of list.childNodes) {
-    if (child.nodeType != Node.ELEMENT_NODE || child.tagName != 'LI') continue;
-    setHidden(child, !isInterestingJob(child));
+    if (child.nodeType == Node.ELEMENT_NODE && child.tagName == 'LI') {
+      setHidden(child, !isInterestingJob(child));
+    }
   }
   fixSelection(list);
 };
@@ -212,8 +212,9 @@ const hideGames = () => {
   if (!news) return;
   let subheaders = news.querySelectorAll(selectors.newsSubheader);
   for (let node = subheaders.item(1); node; node = node.nextSibling) {
-    if (node.nodeType != Node.ELEMENT_NODE) continue;
-    setGone(node, true);
+    if (node.nodeType == Node.ELEMENT_NODE) {
+      setGone(node, true);
+    }
   }
 };
 
