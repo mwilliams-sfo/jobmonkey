@@ -20,6 +20,7 @@ const selectors = {
 
 // No offense.
 const companyExclusions = [
+  /Capgemini/,
   /Cognizant/,
   /Compunnel/,
   /GlobalLogic/,
@@ -27,6 +28,8 @@ const companyExclusions = [
   /Infosys/,
   /Jobs via Dice/,
   /Motion Recruitment/,
+  /NTT DATA/,
+  /Robert Half/,
   /The Mom Project/,
   /Wipro/,
 
@@ -46,6 +49,7 @@ const companyExclusions = [
   /xAI/,
 
   /\bai\b/i,
+  /^coin/i,
   /consult/i,
   /\bgroup\b/i,
   /infote/i,
@@ -81,7 +85,7 @@ const hideSuggestedPosts = feed => {
 
 const isInterestingTitle = title => {
   title = title.toLowerCase();
-  if (title.match(/\b(?:manager|principal|lead|test|qa)\b/)) return false;
+  if (title.match(/\b(?:ai|manager|principal|lead|test|qa)\b/)) return false;
 
   return true;
 };
