@@ -7,6 +7,8 @@ const selectors = {
   newsSubheader: '.news-module__subheader',
 
   jobList: '.jobs-search-two-pane__layout .scaffold-layout__list > div > ul',
+  activeJob: '.jobs-search-results-list__list-item--active',
+  jobClickable: '.job-card-container--clickable',
   jobTitle: '.job-card-list__title--link strong',
   jobCompany: '.artdeco-entity-lockup__subtitle',
   jobLocation: '.artdeco-entity-lockup__caption',
@@ -68,6 +70,8 @@ const setHidden = (elt, hidden) => {
   elt.classList.toggle('jm-hidden', hidden);
 };
 
+const isHidden = elt => elt.classList.contains('jm-hidden');
+
 const isSuggestedPost = feedItem =>
   feedItem
     .querySelector(selectors.feedItemHeaderText)
@@ -113,13 +117,35 @@ const isInterestingJob = job => {
   return true;
 };
 
-const scrubJobList = list => {
-  for (const child of list.childNodes) {
-    if (child.nodeType != Node.ELEMENT_NODE) continue;
-    if (child.tagName == 'LI') {
-      setHidden(child, !isInterestingJob(child));
+const fixSelection = list => {
+  const jobs =
+    Array.from(list.childNodes)
+      .filter(it => it.nodeType == Node.ELEMENT_NODE && it.tagName == 'LI');
+  const activeJob = jobs.find(it => it.querySelector(selectors.activeJob));
+  if (!activeJob || !isHidden(activeJob)) return;
+
+  // Search forward for another job to select, with wrap-around.
+  for (
+    let otherJob = activeJob.nextSibling ?? list.firstChild;
+    otherJob && otherJob !== activeJob;
+    otherJob = otherJob.nextSibling ?? list.firstChild
+  ) {
+    if (otherJob.nodeType != Node.ELEMENT_NODE || otherJob.tagName != 'LI') {
+      continue;
+    }
+    if (!isHidden(otherJob)) {
+      otherJob.querySelector(selectors.jobClickable)?.click();
+      break;
     }
   }
+};
+
+const scrubJobList = list => {
+  for (const child of list.childNodes) {
+    if (child.nodeType != Node.ELEMENT_NODE || child.tagName != 'LI') continue;
+    setHidden(child, !isInterestingJob(child));
+  }
+  fixSelection(list);
 };
 
 const scrubJobDetails = details => {
