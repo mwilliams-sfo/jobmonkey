@@ -43,6 +43,7 @@ const companyExclusions = [
   /Kohler Ventures/,
   /Lucid Motors/,
   /Meta/,
+  /OKX/,
   /OpenAI/,
   /OSI Engineering/,
   /Rivian/,
@@ -72,6 +73,20 @@ const setHidden = (elt, hidden) => {
 
 const isHidden = elt => elt.classList.contains('jm-hidden');
 
+const splitTerms = str => {
+  const terms = [];
+  while (str = str.trimStart()) {
+    const re =
+      str.startsWith('\'') ? /^'([^']*)'?/ :
+      str.startsWith('"') ? /^"([^"]*)"?/ :
+      /^(\S*)/;
+    const match = re.exec(str);
+    terms.push(match[1]);
+    str = str.substr(match[0].length);
+  }
+  return terms;
+};
+
 const isSuggestedPost = feedItem =>
   feedItem
     .querySelector(selectors.feedItemHeaderText)
@@ -87,8 +102,20 @@ const hideSuggestedPosts = feed => {
 };
 
 const isInterestingTitle = title => {
-  title = title.toLowerCase();
-  if (title.match(/\b(?:ai|manager|principal|lead|test|qa)\b/)) return false;
+  if (title.match(/\b(?:manager|principal|lead|test|ai|qa|security)\b/i)) {
+    return false;
+  }
+
+  const keywordsParam = new URL(document.URL).searchParams.get('keywords');
+  if (keywordsParam) {
+    const keywords = splitTerms(keywordsParam);
+    if (
+      keywords.some(it => it.toLowerCase() == 'android') &&
+      !title.match(/\b(?:android|mobile)\b/i)
+    ) {
+      return false;
+    }
+  }
 
   return true;
 };
