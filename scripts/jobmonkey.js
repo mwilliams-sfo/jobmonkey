@@ -1,12 +1,15 @@
 
 const selectors = {
   feed: 'div[data-finite-scroll-hotkey-context=FEED]',
-  feedItemHeaderText: '.update-components-header .update-components-header__text-view',
+  feedItemHeaderText:
+    '.update-components-header .update-components-header__text-view',
   feedNewsModule: '#feed-news-module',
   newsSubheader: '.news-module__subheader',
 
   jobList: '.jobs-search-two-pane__layout .scaffold-layout__list > div > ul',
   jobTitle: '.job-card-list__title--link strong',
+  jobCompany: '.artdeco-entity-lockup__subtitle',
+  jobLocation: '.artdeco-entity-lockup__caption',
 
   jobDetails: '.jobs-search__job-details',
   jobDetailsModule: '.job-details-module',
@@ -14,6 +17,46 @@ const selectors = {
 
   upsellPremiumContainer: '.upsell-premium-custom-section-card__container',
 };
+
+// No offense.
+const companyExclusions = [
+  /Cognizant/,
+  /Compunnel/,
+  /GlobalLogic/,
+  /Infojini/,
+  /Infosys/,
+  /Jobs via Dice/,
+  /Motion Recruitment/,
+  /The Mom Project/,
+  /Wipro/,
+
+  /Amazon/,
+  /Anthropic/,
+  /Apple/,
+  /Braintrust/,
+  /ByteDance/,
+  /Kohler Ventures/,
+  /Lucid Motors/,
+  /Meta/,
+  /OpenAI/,
+  /OSI Engineering/,
+  /Rivian/,
+  /Tesla/,
+  /TikTok/,
+  /xAI/,
+
+  /\bai\b/i,
+  /consult/i,
+  /\bgroup\b/i,
+  /infote/i,
+  /^intelli/i,
+  / llc$/i,
+  /resourc/i,
+  /solutions/i,
+  /staffing/i,
+  /^tek/i,
+  /tek\b/i,
+];
 
 const setGone = (elt, gone) => { elt.classList.toggle('jm-gone', gone); };
 
@@ -43,9 +86,25 @@ const isInterestingTitle = title => {
   return true;
 };
 
+const isInterestingCompany = company =>
+  !companyExclusions.some(it => company.match(it));
+
+const isUnitedStatesSearch = () =>
+  new URL(document.URL).searchParams.get('geoid') === '103644278';
+
 const isInterestingJob = job => {
   const title = job.querySelector(selectors.jobTitle)?.textContent?.trim();
   if (title && !isInterestingTitle(title)) return false;
+
+  const company =
+    job.querySelector(selectors.jobCompany)?.textContent?.trim();
+  if (company && !isInterestingCompany(company)) return false;
+
+  const location =
+    job.querySelector(selectors.jobLocation)?.textContent?.trim();
+  if (location === 'United States (Remote)' && !isUnitedStatesSearch()) {
+    return false
+  }
 
   return true;
 };
