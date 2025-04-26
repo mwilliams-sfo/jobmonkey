@@ -3,7 +3,8 @@ const selectors = {
   feed: 'div[data-finite-scroll-hotkey-context=FEED]',
   feedItemHeaderText:
     '.update-components-header .update-components-header__text-view',
-  feedNewsModule: '#feed-news-module',
+
+  newsModule: '#feed-news-module',
   newsSubheader: '.news-module__subheader',
 
   jobList: '.jobs-search-two-pane__layout .scaffold-layout__list > div > ul',
@@ -16,7 +17,6 @@ const selectors = {
   jobDetails: '.jobs-search__job-details',
   jobDetailsModule: '.job-details-module',
   fitLevelCard: '.job-details-fit-level-card',
-
   upsellPremiumContainer: '.upsell-premium-custom-section-card__container',
 };
 
@@ -93,10 +93,19 @@ const isSuggestedPost = feedItem =>
     ?.textContent
     ?.trim() === 'Suggested';
 
-const hideSuggestedPosts = feed => {
+const scrubFeed = feed => {
   for (const child of feed.childNodes) {
     if (child.nodeType == Node.ELEMENT_NODE && child.tagName == 'DIV') {
       setGone(child, isSuggestedPost(child));
+    }
+  }
+};
+
+const scrubNews = news => {
+  let subheaders = news.querySelectorAll(selectors.newsSubheader);
+  for (let node = subheaders.item(1); node; node = node.nextSibling) {
+    if (node.nodeType == Node.ELEMENT_NODE) {
+      setGone(node, true);
     }
   }
 };
@@ -224,25 +233,31 @@ const observeFeed = () => {
   if (feedObserved) return;
   const feed = document.querySelector(selectors.feed);
   if (!feed) return;
+  scrubFeed(feed);
   observeNode(
     feed,
     { attributes: true, childList: true, subtree: true },
-    () => { hideSuggestedPosts(feed); }
+    () => { scrubFeed(feed); }
   ).then(() => {
     feedObserved = false;
   });
   feedObserved = true;
 };
 
-const hideGames = () => {
-  const news = document.querySelector(selectors.feedNewsModule);
+let newsObserved = false;
+const observeNews = () => {
+  if (newsObserved) return;
+  const news = document.querySelector(selectors.newsModule);
   if (!news) return;
-  let subheaders = news.querySelectorAll(selectors.newsSubheader);
-  for (let node = subheaders.item(1); node; node = node.nextSibling) {
-    if (node.nodeType == Node.ELEMENT_NODE) {
-      setGone(node, true);
-    }
-  }
+  scrubNews(news);
+  observeNode(
+    news,
+    { attributes: true, childList: true, subtree: true },
+    () => { scrubNews(news); }
+  ).then(() => {
+    newsObserved = false;
+  });
+  newsObserved = true;
 };
 
 let jobListObserved = null;
@@ -250,6 +265,7 @@ const observeJobList = () => {
   if (jobListObserved) return;
   const jobList = document.querySelector(selectors.jobList);
   if (!jobList) return;
+  scrubJobList(jobList);
   observeNode(
     jobList,
     { attributes: true, childList: true, subtree: true },
@@ -265,6 +281,7 @@ const observeJobDetails = () => {
   if (jobDetailsObserved) return;
   const details = document.querySelector(selectors.jobDetails);
   if (!details) return;
+  scrubJobDetails(details);
   observeNode(
     details,
     { attributes: true, childList: true, subtree: true },
@@ -284,8 +301,7 @@ observeNode(
   { attributes: true, childList: true, subtree: true },
   () => {
     observeFeed();
-    hideGames();
-
+    observeNews();
     observeJobList();
     observeJobDetails();
   });
