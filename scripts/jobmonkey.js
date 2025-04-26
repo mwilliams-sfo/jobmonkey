@@ -3,7 +3,7 @@ const selectors = {
   feed: 'div[data-finite-scroll-hotkey-context=FEED]',
   feedItemHeaderText: '.update-components-header .update-components-header__text-view',
   feedNewsModule: '#feed-news-module',
-  games: '#todays-games-entrypoint-title, ul[aria-labelledby=todays-games-entrypoint-title]',
+  newsSubheader: '.news-module__subheader',
 
   jobList: '.jobs-search-two-pane__layout .scaffold-layout__list > div > ul',
   jobTitle: '.job-card-list__title--link strong',
@@ -121,7 +121,9 @@ const observeFeed = () => {
 const hideGames = () => {
   const news = document.querySelector(selectors.feedNewsModule);
   if (!news) return;
-  for (const node of news.querySelectorAll(selectors.games)) {
+  let subheaders = news.querySelectorAll(selectors.newsSubheader);
+  for (let node = subheaders.item(1); node; node = node.nextSibling) {
+    if (node.nodeType != Node.ELEMENT_NODE) continue;
     setGone(node, true);
   }
 };
