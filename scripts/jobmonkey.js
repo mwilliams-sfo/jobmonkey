@@ -16,6 +16,8 @@ const selectors = {
 
   jobDetails: '.jobs-search__job-details',
   jobDetailsModule: '.job-details-module',
+  jobDetailsDescription: '.jobs-description',
+  jobDetailsCompany: '*[data-view-name=job-details-about-company-module]',
   fitLevelCard: '.job-details-fit-level-card',
   upsellPremiumContainer: '.upsell-premium-custom-section-card__container',
 };
@@ -186,7 +188,11 @@ const scrubJobList = list => {
 
 const scrubJobDetails = details => {
   for (const module of details.querySelectorAll(selectors.jobDetailsModule)) {
-    if (module.querySelector(selectors.fitLevelCard)) {
+    if (
+      module.id !== 'SALARY' &&
+      !module.matches(selectors.jobDetailsDescription) &&
+      !module.querySelector(selectors.jobDetailsCompany)
+    ) {
       setGone(module, true);
     }
   }
