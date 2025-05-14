@@ -113,7 +113,7 @@ const scrubNews = news => {
 };
 
 const isInterestingTitle = title => {
-  if (title.match(/\b(?:manager|principal|lead|test|ai|qa|security)\b/i)) {
+  if (title.match(/\b(?:manager|principal|lead|test|tester|ai|qa|security)\b/i)) {
     return false;
   }
 
