@@ -24,6 +24,7 @@ const selectors = {
 
 // No offense.
 const companyExclusions = [
+  /Braintrust/,
   /Capgemini/,
   /Cognizant/,
   /Compunnel/,
@@ -42,7 +43,7 @@ const companyExclusions = [
   /Amazon/,
   /Anthropic/,
   /Apple/,
-  /Braintrust/,
+  /Block/,
   /ByteDance/,
   /Kohler Ventures/,
   /Lucid Motors/,
@@ -52,6 +53,7 @@ const companyExclusions = [
   /OpenAI/,
   /OSI Engineering/,
   /Rivian/,
+  /SiriusXM/,
   /Tesla/,
   /TikTok/,
   /xAI/,
