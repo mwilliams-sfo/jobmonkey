@@ -207,17 +207,33 @@ const scrubJobDetails = details => {
   }
 };
 
+const nodeAdded = async (selector) => {
+  let observer;
+  return document.querySelector(selector) ??
+    new Promise(resolve => {
+      observer = new MutationObserver(mutationList => {
+        const element = document.querySelector(selector);
+        if (element) resolve(element);
+      });
+      observer.observe(document, { childList: true, subtree: true });
+    }).finally(() => {
+      observer?.disconnect();
+    });
+};
+
 const nodeRemoved = async (node) => {
   const document = node.ownerDocument;
   if (!document) return;
+  let observer;
   return new Promise(resolve => {
     const observer = new MutationObserver(mutationList => {
       if (!document.contains(node)) {
-        observer.disconnect();
         resolve();
       }
     });
     observer.observe(document, { childList: true, subtree: true });
+  }).finally(() => {
+    observer?.disconnect();
   });
 };
 
@@ -228,88 +244,54 @@ const addStyleSheet = text => {
   return element.sheet;
 };
 
-const observeNode = async (node, options, callback) => {
-  if (!node.ownerDocument) return;
-  const nodeObserver = new MutationObserver(callback);
-  nodeObserver.observe(node, options);
-  await nodeRemoved(node);
-  nodeObserver.disconnect();
+const observeNode = async (selector, options, callback) => {
+  while (true) {
+    const node = await nodeAdded(selector);
+    callback(node);
+    const observer =
+      new MutationObserver(mutationList => { callback(node); });
+    try {
+      observer.observe(node, options);
+      await nodeRemoved(node);
+    } finally {
+      observer.disconnect();
+    }
+  }
 };
 
-let feedObserved = false;
-const observeFeed = () => {
-  if (feedObserved) return;
-  const feed = document.querySelector(selectors.feed);
-  if (!feed) return;
-  (async () => {
-    feedObserved = true;
-    scrubFeed(feed);
-    await observeNode(
-      feed,
-      { attributes: true, childList: true, subtree: true },
-      () => { scrubFeed(feed); });
-    feedObserved = false;
-  })();
+const observeFeed = async () => {
+  observeNode(
+    selectors.feed,
+    { attributes: true, childList: true, subtree: true },
+    scrubFeed);
 };
 
-let newsObserved = false;
-const observeNews = () => {
-  if (newsObserved) return;
-  const news = document.querySelector(selectors.newsModule);
-  if (!news) return;
-  (async () => {
-    newsObserved = true;
-    scrubNews(news);
-    await observeNode(
-      news,
-      { attributes: true, childList: true, subtree: true },
-      () => { scrubNews(news); });
-    newsObserved = false;
-  })();
+const observeNews = async () => {
+  observeNode(
+    selectors.news,
+    { attributes: true, childList: true, subtree: true },
+    scrubNews);
 };
 
-let jobListObserved = null;
 const observeJobList = () => {
-  if (jobListObserved) return;
-  const jobList = document.querySelector(selectors.jobList);
-  if (!jobList) return;
-  (async () => {
-    jobListObserved = true;
-    scrubJobList(jobList);
-    await observeNode(
-      jobList,
-      { attributes: true, childList: true, subtree: true },
-      () => { scrubJobList(jobList); });
-    jobListObserved = false;
-  })();
+  observeNode(
+    selectors.jobList,
+    { attributes: true, childList: true, subtree: true },
+    scrubJobList);
 };
 
-let jobDetailsObserved = null;
 const observeJobDetails = () => {
-  if (jobDetailsObserved) return;
-  const details = document.querySelector(selectors.jobDetails);
-  if (!details) return;
-  (async () => {
-    jobDetailsObserved = true;
-    scrubJobDetails(details);
-    await observeNode(
-      details,
-      { attributes: true, childList: true, subtree: true },
-      () => { scrubJobDetails(details); });
-    jobDetailsObserved = false;
-  })();
+  observeNode(
+    selectors.jobDetails,
+    { attributes: true, childList: true, subtree: true },
+    scrubJobDetails);
 };
 
 const styleSheet = addStyleSheet(
   '.jm-gone { display: none !important; }\n' +
   '.jm-hidden { visibility: hidden !important; }\n');
 
-observeNode(
-  document.body,
-  { attributes: true, childList: true, subtree: true },
-  () => {
-    observeFeed();
-    observeNews();
-    observeJobList();
-    observeJobDetails();
-  });
+observeFeed();
+observeNews();
+observeJobList();
+observeJobDetails();
