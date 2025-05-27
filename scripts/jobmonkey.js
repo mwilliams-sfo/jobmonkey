@@ -207,13 +207,10 @@ const scrubJobDetails = details => {
   }
 };
 
-const nodeRemoved = node =>
-  new Promise(resolve => {
-    const document = node.ownerDocument;
-    if (!document) {
-      resolve();
-      return;
-    }
+const nodeRemoved = async (node) => {
+  const document = node.ownerDocument;
+  if (!document) return;
+  return new Promise(resolve => {
     const observer = new MutationObserver(mutationList => {
       if (!document.contains(node)) {
         observer.disconnect();
@@ -222,6 +219,7 @@ const nodeRemoved = node =>
     });
     observer.observe(document, { childList: true, subtree: true });
   });
+};
 
 const addStyleSheet = text => {
   const element = document.createElement('style');
@@ -236,7 +234,6 @@ const observeNode = async (node, options, callback) => {
   nodeObserver.observe(node, options);
   await nodeRemoved(node);
   nodeObserver.disconnect();
-  return;
 };
 
 let feedObserved = false;
