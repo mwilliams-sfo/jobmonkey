@@ -109,12 +109,18 @@ const scrubFeed = feed => {
 };
 
 const scrubNews = news => {
-  let subheaders = news.querySelectorAll(selectors.newsSubheader);
-  for (let node = subheaders.item(1); node; node = node.nextSibling) {
-    if (node.nodeType == Node.ELEMENT_NODE) {
-      setGone(node, true);
+  news.querySelectorAll(selectors.newsSubheader).forEach((subheader, index) => {
+    if (index > 0) {
+      // Hide the subheader and any content under it.
+      setGone(subheader, true);
+      for (let node = subheader.nextSibling; node; node = node.nextSibling) {
+        if (node.nodeType == Node.ELEMENT_NODE) {
+          if (node.classList.contains('news-module__subheader')) break;
+          setGone(node, true);
+        }
+      }
     }
-  }
+  });
 };
 
 const isInterestingTitle = title => {
@@ -268,7 +274,7 @@ const observeFeed = async () => {
 
 const observeNews = async () => {
   observeNode(
-    selectors.news,
+    selectors.newsModule,
     { attributes: true, childList: true, subtree: true },
     scrubNews);
 };
