@@ -38,6 +38,7 @@ const companyExclusions = [
   /NTT DATA/,
   /Robert Half/,
   /The Mom Project/,
+  /Verticalmove/,
   /Wipro/,
 
   /Amazon/,
@@ -48,6 +49,7 @@ const companyExclusions = [
   /Kohler Ventures/,
   /Lucid Motors/,
   /Meta/,
+  /Microsoft/,
   /Nextdoor/,
   /OKX/,
   /OpenAI/,
