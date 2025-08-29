@@ -234,7 +234,7 @@ const nodeRemoved = async (node) => {
   if (!document) return;
   let observer;
   return new Promise(resolve => {
-    const observer = new MutationObserver(mutationList => {
+    observer = new MutationObserver(mutationList => {
       if (!document.contains(node)) {
         resolve();
       }
