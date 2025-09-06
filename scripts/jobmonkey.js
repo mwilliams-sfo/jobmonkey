@@ -7,7 +7,8 @@ const selectors = {
   newsModule: '#feed-news-module',
   newsSubheader: '.news-module__subheader',
 
-  jobList: '.jobs-search-two-pane__layout .scaffold-layout__list > div > ul',
+  jobList:
+    '.jobs-search-two-pane__layout .scaffold-layout__list ul:has(> li.scaffold-layout__list-item)',
   activeJob: '.jobs-search-results-list__list-item--active',
   jobClickable: '.job-card-container--clickable',
   jobTitle: '.job-card-list__title--link strong',
