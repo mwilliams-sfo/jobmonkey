@@ -216,17 +216,26 @@ const scrubJobDetails = details => {
   }
 };
 
-const nodeAdded = async (selector) => {
+const nodeAdded = async (selector, options) {
+  const document = options?.document ?? document;
+  const signal = options?.signal;
   let observer;
   return document.querySelector(selector) ??
-    new Promise(resolve => {
+    new Promise((resolve, reject) => {
+      const abortListener = evt => { reject(Error(signal.reason)); };
+      signal?.addEventListener('abort', abortListener, {once: true});
+
       observer = new MutationObserver(mutationList => {
         const element = document.querySelector(selector);
-        if (element) resolve(element);
+        if (element) {
+          signal?.removeEventListener('abort', abortListener);
+          resolve(element);
+        };
       });
       observer.observe(document, { childList: true, subtree: true });
     }).finally(() => {
       observer?.disconnect();
+      observer = null;
     });
 };
 
