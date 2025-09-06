@@ -268,14 +268,14 @@ const observeNode = async (selector, options, callback) => {
   }
 };
 
-const observeFeed = async () => {
+const observeFeed = () => {
   observeNode(
     selectors.feed,
     { attributes: true, childList: true, subtree: true },
     scrubFeed);
 };
 
-const observeNews = async () => {
+const observeNews = () => {
   observeNode(
     selectors.newsModule,
     { attributes: true, childList: true, subtree: true },
