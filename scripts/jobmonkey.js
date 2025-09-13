@@ -272,31 +272,45 @@ const addStyleSheet = text => {
   return element.sheet;
 };
 
-const observeNode = async (document, selector, callback, options) =>
-  new Promise((resolve, reject) => {
+const observeNode = async (node, options, callback) => {
+  if (!node.ownerDocument) return;
+  callback(node);
+
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
     (async () => {
-      const signal = options?.signal;
-      signal?.throwIfAborted();
+      const observer = new MutationObserver(mutationList => {
+        if (signal?.aborted) {
+          reject(signal.reason);
+          return;
+        }
+        callback(node);
+      });
+      try {
+        observer.observe(
+          node, { attributes: true, childList: true, subtree: true });
+        return await nodeRemoved(node, { signal });
+      } catch (e) {
+        reject(e);
+      } finally {
+        observer.disconnect();
+      }
+    })();
+  });
+};
+
+const observeSelectedNode = (document, selector, options, callback) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    (async () => {
       try {
         const abortListener = evt => reject(signal.reason);
         signal?.addEventListener('abort', abortListener);
         while (true) {
           const node = await nodeAdded(document, selector, { signal });
-          callback(node);
-          const observer = new MutationObserver(mutationList => {
-            if (signal?.aborted) {
-              reject(signal.reason);
-              return;
-            }
-            callback(node);
-          });
-          try {
-            observer.observe(
-              node, { attributes: true, childList: true, subtree: true });
-            await nodeRemoved(node, { signal });
-          } finally {
-            observer.disconnect();
-          }
+          await observeNode(node, { signal }, callback);
         }
       } catch (e) {
         reject(e);
@@ -305,21 +319,22 @@ const observeNode = async (document, selector, callback, options) =>
       }
     })();
   });
+};
 
 const observeFeed = () => {
-  observeNode(document, selectors.feed, scrubFeed);
+  observeSelectedNode(document, selectors.feed, {}, scrubFeed);
 };
 
 const observeNews = () => {
-  observeNode(document, selectors.newsModule, scrubNews);
+  observeSelectedNode(document, selectors.newsModule, {}, scrubNews);
 };
 
 const observeJobList = () => {
-  observeNode(document, selectors.jobList, scrubJobList);
+  observeSelectedNode(document, selectors.jobList, {}, scrubJobList);
 };
 
 const observeJobDetails = () => {
-  observeNode(document, selectors.jobDetails, scrubJobDetails);
+  observeSelectedNode(document, selectors.jobDetails, {}, scrubJobDetails);
 };
 
 const styleSheet = addStyleSheet(
