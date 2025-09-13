@@ -230,19 +230,27 @@ const nodeAdded = async (document, selector) => {
     });
 };
 
-const nodeRemoved = async (node) => {
+const nodeRemoved = async (node, options) => {
   const document = node.ownerDocument;
   if (!document) return;
-  let observer;
-  return new Promise(resolve => {
+
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+  let abortListener, observer;
+  return new Promise((resolve, reject) => {
+    signal?.addEventListener(
+      'abort', abortListener = evt => reject(signal.reason));
     observer = new MutationObserver(mutationList => {
-      if (!document.contains(node)) {
-        resolve();
+      if (signal?.aborted) {
+         reject(signal.reason);
+         return;
       }
+      if (!document.contains(node)) resolve();
     });
     observer.observe(document, { childList: true, subtree: true });
   }).finally(() => {
     observer?.disconnect();
+    signal?.removeEventListener('abort', abortListener);
   });
 };
 
@@ -275,8 +283,7 @@ const observeNode = async (document, selector, callback, options) =>
           try {
             observer.observe(
               node, { attributes: true, childList: true, subtree: true });
-            await nodeRemoved(node);
-            signal?.throwIfAborted();
+            await nodeRemoved(node, { signal });
           } finally {
             observer.disconnect();
           }
