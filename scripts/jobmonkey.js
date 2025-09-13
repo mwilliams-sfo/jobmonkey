@@ -253,21 +253,41 @@ const addStyleSheet = text => {
   return element.sheet;
 };
 
-const observeNode = async (document, selector, callback) => {
-  while (true) {
-    const node = await nodeAdded(document, selector);
-    callback(node);
-    const observer =
-      new MutationObserver(mutationList => { callback(node); });
-    try {
-      observer.observe(
-        node, { attributes: true, childList: true, subtree: true });
-      await nodeRemoved(node);
-    } finally {
-      observer.disconnect();
-    }
-  }
-};
+const observeNode = async (document, selector, callback, options) =>
+  new Promise((resolve, reject) => {
+    (async () => {
+      const signal = options?.signal;
+      signal?.throwIfAborted();
+      try {
+        const abortListener = evt => reject(signal.reason);
+        signal?.addEventListener('abort', abortListener);
+        while (true) {
+          const node = await nodeAdded(document, selector);
+          signal?.throwIfAborted();
+          callback(node);
+          const observer = new MutationObserver(mutationList => {
+            if (signal?.aborted) {
+              reject(signal.reason);
+              return;
+            }
+            callback(node);
+          });
+          try {
+            observer.observe(
+              node, { attributes: true, childList: true, subtree: true });
+            await nodeRemoved(node);
+            signal?.throwIfAborted();
+          } finally {
+            observer.disconnect();
+          }
+        }
+      } catch (e) {
+        reject(e);
+      } finally {
+        signal?.removeEventListener('abort', abortListener);
+      }
+    })();
+  });
 
 const observeFeed = () => {
   observeNode(document, selectors.feed, scrubFeed);
