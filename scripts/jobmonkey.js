@@ -216,18 +216,29 @@ const scrubJobDetails = details => {
   }
 };
 
-const nodeAdded = async (document, selector) => {
-  let observer;
-  return document.querySelector(selector) ??
-    new Promise(resolve => {
-      observer = new MutationObserver(mutationList => {
-        const element = document.querySelector(selector);
-        if (element) resolve(element);
-      });
-      observer.observe(document, { childList: true, subtree: true });
-    }).finally(() => {
-      observer?.disconnect();
+const nodeAdded = async (document, selector, options) => {
+  const element = document.querySelector(selector);
+  if (element) return element;
+
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+  let abortListener, observer;
+  return new Promise((resolve, reject) => {
+    signal?.addEventListener(
+      'abort', abortListener = evt => reject(signal.reason));
+    observer = new MutationObserver(mutationList => {
+      if (signal?.aborted) {
+        reject(signal.reason);
+        return;
+      }
+      const element = document.querySelector(selector);
+      if (element) resolve(element);
     });
+    observer.observe(document, { childList: true, subtree: true });
+  }).finally(() => {
+    observer?.disconnect();
+    signal?.removeEventListener('abort', abortListener);
+  });
 };
 
 const nodeRemoved = async (node, options) => {
@@ -270,8 +281,7 @@ const observeNode = async (document, selector, callback, options) =>
         const abortListener = evt => reject(signal.reason);
         signal?.addEventListener('abort', abortListener);
         while (true) {
-          const node = await nodeAdded(document, selector);
-          signal?.throwIfAborted();
+          const node = await nodeAdded(document, selector, { signal });
           callback(node);
           const observer = new MutationObserver(mutationList => {
             if (signal?.aborted) {
