@@ -216,7 +216,7 @@ const scrubJobDetails = details => {
   }
 };
 
-const nodeAdded = async (selector) => {
+const nodeAdded = async (document, selector) => {
   let observer;
   return document.querySelector(selector) ??
     new Promise(resolve => {
@@ -253,14 +253,15 @@ const addStyleSheet = text => {
   return element.sheet;
 };
 
-const observeNode = async (selector, options, callback) => {
+const observeNode = async (document, selector, callback) => {
   while (true) {
-    const node = await nodeAdded(selector);
+    const node = await nodeAdded(document, selector);
     callback(node);
     const observer =
       new MutationObserver(mutationList => { callback(node); });
     try {
-      observer.observe(node, options);
+      observer.observe(
+        node, { attributes: true, childList: true, subtree: true });
       await nodeRemoved(node);
     } finally {
       observer.disconnect();
@@ -269,31 +270,19 @@ const observeNode = async (selector, options, callback) => {
 };
 
 const observeFeed = () => {
-  observeNode(
-    selectors.feed,
-    { attributes: true, childList: true, subtree: true },
-    scrubFeed);
+  observeNode(document, selectors.feed, scrubFeed);
 };
 
 const observeNews = () => {
-  observeNode(
-    selectors.newsModule,
-    { attributes: true, childList: true, subtree: true },
-    scrubNews);
+  observeNode(document, selectors.newsModule, scrubNews);
 };
 
 const observeJobList = () => {
-  observeNode(
-    selectors.jobList,
-    { attributes: true, childList: true, subtree: true },
-    scrubJobList);
+  observeNode(document, selectors.jobList, scrubJobList);
 };
 
 const observeJobDetails = () => {
-  observeNode(
-    selectors.jobDetails,
-    { attributes: true, childList: true, subtree: true },
-    scrubJobDetails);
+  observeNode(document, selectors.jobDetails, scrubJobDetails);
 };
 
 const styleSheet = addStyleSheet(
