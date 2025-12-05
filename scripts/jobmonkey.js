@@ -216,34 +216,50 @@ const scrubJobDetails = details => {
   }
 };
 
-const nodeAdded = async (document, selector) => {
-  let observer;
-  return document.querySelector(selector) ??
-    new Promise(resolve => {
-      observer = new MutationObserver(mutationList => {
-        const element = document.querySelector(selector);
-        if (element) resolve(element);
-      });
-      observer.observe(document, { childList: true, subtree: true });
-    }).finally(() => {
-      observer?.disconnect();
-    });
+const nodeAdded = async (document, selector, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
+  const element = document.querySelector(selector);
+  if (element) return element;
+
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const abortListener = () => reject(signal.reason);
+  const observer = new MutationObserver(mutationList => {
+    const element = document.querySelector(selector);
+    if (element) resolve(element);
+  });
+  try {
+    signal?.addEventListener('abort', abortListener);
+    observer.observe(
+      document, { attributes: true, childList: true, subtree: true });
+    return await promise;
+  } finally {
+    observer.disconnect();
+    signal?.removeEventListener('abort', abortListener);
+  }
 };
 
-const nodeRemoved = async (node) => {
+const nodeRemoved = async (node, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
   const document = node.ownerDocument;
   if (!document) return;
-  let observer;
-  return new Promise(resolve => {
-    observer = new MutationObserver(mutationList => {
-      if (!document.contains(node)) {
-        resolve();
-      }
-    });
-    observer.observe(document, { childList: true, subtree: true });
-  }).finally(() => {
-    observer?.disconnect();
+
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const abortListener = () => reject(signal.reason);
+  const observer = new MutationObserver(mutationList => {
+    if (!document.contains(node)) resolve();
   });
+  try {
+    signal?.addEventListener('abort', abortListener);
+    observer.observe(document, { childList: true, subtree: true });
+    return await promise;
+  } finally {
+    observer.disconnect();
+    signal?.removeEventListener('abort', abortListener);
+  }
 };
 
 const addStyleSheet = text => {
@@ -253,36 +269,42 @@ const addStyleSheet = text => {
   return element.sheet;
 };
 
-const observeNode = async (document, selector, callback) => {
+const observeNode = async (document, selector, options, callback) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
   while (true) {
-    const node = await nodeAdded(document, selector);
+    const node = await nodeAdded(document, selector, {signal});
     callback(node);
-    const observer =
-      new MutationObserver(mutationList => { callback(node); });
+
+    const observer = new MutationObserver(mutationList => { callback(node); });
     try {
       observer.observe(
         node, { attributes: true, childList: true, subtree: true });
-      await nodeRemoved(node);
+      await nodeRemoved(node, {signal});
     } finally {
       observer.disconnect();
     }
   }
 };
 
-const observeFeed = () => {
-  observeNode(document, selectors.feed, scrubFeed);
+const observeFeed = (options) => {
+  const signal = options?.signal;
+  observeNode(document, selectors.feed, {signal}, scrubFeed);
 };
 
-const observeNews = () => {
-  observeNode(document, selectors.newsModule, scrubNews);
+const observeNews = (options) => {
+  const signal = options?.signal;
+  observeNode(document, selectors.newsModule, {signal}, scrubNews);
 };
 
-const observeJobList = () => {
-  observeNode(document, selectors.jobList, scrubJobList);
+const observeJobList = (options) => {
+  const signal = options?.signal;
+  observeNode(document, selectors.jobList, {signal}, scrubJobList);
 };
 
-const observeJobDetails = () => {
-  observeNode(document, selectors.jobDetails, scrubJobDetails);
+const observeJobDetails = (options) => {
+  const signal = options?.signal;
+  observeNode(document, selectors.jobDetails, {signal}, scrubJobDetails);
 };
 
 const styleSheet = addStyleSheet(
