@@ -216,7 +216,88 @@ const scrubJobDetails = details => {
   }
 };
 
-const nodeAdded = async (document, selector, options) => {
+const frameLoaded = async (frame, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
+  const document = frame.contentDocument;
+  if (document) return document;
+
+  const window = frame.contentWindow;
+  if (!window) throw Error('Frame has no content window');
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const abortListener = () => reject(signal.reason);
+  const loadListener = () => {
+    const document = frame.contentDocument;
+    if (document) resolve(document);
+  };
+  try {
+    signal?.addEventListener('abort', abortListener);
+    window.addEventListener('load', loadListener);
+    return await promise;
+  } finally {
+    window.removeEventListener('load', loadListener);
+    signal?.removeEventListener('abort', abortListener);
+  }
+};
+
+const frameUnloaded = async (frame, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
+  if (!frame.contentDocument) return;
+
+  const window = frame.contentWindow;
+  if (!window) throw Error('Frame has no content window');
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const abortListener = () => reject(signal.reason);
+  const unloadListener = () => resolve();
+  try {
+    signal?.addEventListener('abort', abortListener);
+    window.addEventListener('unload', unloadListener);
+    return await promise;
+  } finally {
+    window.removeEventListener('unload', unloadListener);
+    signal?.removeEventListener('abort', abortListener);
+  }
+};
+
+const nodeAddedInIframe = async (document, selector, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const abortListener = () => reject(signal.reason);
+  const localController = new AbortController();
+  const localSignal =
+    signal ? AbortSignal.any([signal, localController.signal]) :
+    localController.signal;
+  try {
+    signal?.addEventListener('abort', abortListener);
+    (async () => {
+      while (true) {
+        const document = frameLoaded(frame, {signal: localSignal});
+        const docController = new AbortController();
+        try {
+          const docSignal =
+            AbortSignal.any([localSignal, docController.Signal]);
+          nodeAdded(
+            document, selector, {signal: docSignal, deep: options?.deep})
+            .then(resolve, () => {});
+          await nodeUnloaded(frame, {signal: localSignal});
+        } finally {
+          docController.abort(Error('Frame unloaded'));
+        }
+      }
+    })();
+    return await promise;
+  } finally {
+    localController.abort(Error('Task complete'));
+    signal?.removeEventListener('abort', abortListener);
+  }
+};
+
+const nodeAddedShallow = async (document, selector, options) => {
   const signal = options?.signal;
   signal?.throwIfAborted();
 
@@ -225,6 +306,7 @@ const nodeAdded = async (document, selector, options) => {
 
   const {promise, resolve, reject} = Promise.withResolvers();
   const abortListener = () => reject(signal.reason);
+
   const observer = new MutationObserver(mutationList => {
     const element = document.querySelector(selector);
     if (element) resolve(element);
@@ -236,6 +318,84 @@ const nodeAdded = async (document, selector, options) => {
     return await promise;
   } finally {
     observer.disconnect();
+    signal?.removeEventListener('abort', abortListener);
+  }
+};
+
+const nodeAddedInIframes = async (document, selector, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const abortListener = () => reject(signal.reason);
+  const localController = new AbortController();
+  const localSignal =
+    signal ? AbortSignal.any([signal, localController.signal]) :
+    localController.signal;
+
+  const frameObservations = [];
+  const observeFrame = frame => {
+    const frameController = new AbortController();
+    const frameSignal =
+      AbortSignal.any([localSignal, frameController.signal]);
+    nodeAddedInIframe(
+      frame, selector, {signal: frameSignal, deep: options?.deep})
+      .then(resolve, () => {});
+    frameObservations.push({frame, controller: frameController});
+  };
+  const framesObserver = new MutationObserver(mutationList => {
+    const frames = Array.from(document.querySelectorAll('iframe'));
+    for (let i = frameObservations.length - 1; i >= 0; i--) {
+      const obs = frameObservations[i];
+      if (!frames.some(it => it === obs.frame)) {
+        obs.controller.abort(Error('Frame removed'));
+        frameObservations.splice(i, 1);
+      }
+    }
+    for (const frame of frames) {
+      if (!frameObservations.some(it => it.frame === frame)) {
+        observeFrame(frame);
+      }
+    }
+  });
+
+  try {
+    signal?.addEventListener('abort', abortListener);
+    for (const frame in document.querySelectorAll('iframe').values()) {
+      observeFrame(frame);
+    }
+    framesObserver.observe(document, {childList: true, subtree: true});
+    return await promise;
+  } finally {
+    framesObserver.disconnect();
+    localController.abort(Error('Task complete'));
+    signal?.removeEventListener('abort', abortListener);
+  }
+};
+
+const nodeAdded = async(document, selector, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const abortListener = () => reject(signal.reason);
+  const localController = new AbortController();
+  const localSignal =
+    signal ? AbortSignal.any([signal, localController.signal]) :
+    localController.signal;
+
+  try {
+    signal?.addEventListener('abort', abortListener);
+    nodeAddedShallow(document, selector, {signal: localSignal})
+      .then(resolve, () => {});
+    const deep = options?.deep;
+    if (deep) {
+      nodeAddedInIframes(document, selector, {signal: localSignal, deep})
+        .then(resolve, () => {});
+    }
+    return await promise;
+  } finally {
+    localController.abort(Error('Task complete'));
     signal?.removeEventListener('abort', abortListener);
   }
 };
@@ -273,7 +433,8 @@ const observeNode = async (document, selector, options, callback) => {
   const signal = options?.signal;
   signal?.throwIfAborted();
   while (true) {
-    const node = await nodeAdded(document, selector, {signal});
+    const node =
+      await nodeAdded(document, selector, {signal, deep: options?.deep});
     callback(node);
 
     const observer = new MutationObserver(mutationList => { callback(node); });
@@ -289,22 +450,23 @@ const observeNode = async (document, selector, options, callback) => {
 
 const observeFeed = (options) => {
   const signal = options?.signal;
-  observeNode(document, selectors.feed, {signal}, scrubFeed);
+  observeNode(document, selectors.feed, {signal, deep: true}, scrubFeed);
 };
 
 const observeNews = (options) => {
   const signal = options?.signal;
-  observeNode(document, selectors.newsModule, {signal}, scrubNews);
+  observeNode(document, selectors.newsModule, {signal, deep: true}, scrubNews);
 };
 
 const observeJobList = (options) => {
   const signal = options?.signal;
-  observeNode(document, selectors.jobList, {signal}, scrubJobList);
+  observeNode(document, selectors.jobList, {signal, deep: true}, scrubJobList);
 };
 
 const observeJobDetails = (options) => {
   const signal = options?.signal;
-  observeNode(document, selectors.jobDetails, {signal}, scrubJobDetails);
+  observeNode(
+    document, selectors.jobDetails, {signal, deep: true}, scrubJobDetails);
 };
 
 const styleSheet = addStyleSheet(
