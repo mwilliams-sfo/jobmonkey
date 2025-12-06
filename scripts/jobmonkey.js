@@ -56,6 +56,7 @@ const companyExclusions = [
   /OKX/,
   /OSI Engineering/,
   /Rivian/,
+  /Roblox/,
   /SiriusXM/,
   /Tesla/,
   /TikTok/,
