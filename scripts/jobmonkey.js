@@ -7,8 +7,8 @@ const selectors = {
   newsModule: '#feed-news-module',
   newsSubheader: '.news-module__subheader',
 
-  jobList:
-    '.jobs-search-two-pane__layout .scaffold-layout__list ul:has(> li.scaffold-layout__list-item)',
+  jobSearch: '.jobs-search-two-pane__layout',
+  jobList: '.scaffold-layout__list ul:has(> li.scaffold-layout__list-item)',
   activeJob: '.jobs-search-results-list__list-item--active',
   jobClickable: '.job-card-container--clickable',
   jobTitle: '.job-card-list__title--link strong',
@@ -217,53 +217,65 @@ const scrubJobDetails = details => {
   }
 };
 
-const nodeAdded = async (document, selector) => {
+const elementAdded = async (parent, selector) => {
   let observer;
-  return document.querySelector(selector) ??
-    new Promise(resolve => {
-      observer = new MutationObserver(mutationList => {
-        const element = document.querySelector(selector);
-        if (element) resolve(element);
-      });
-      observer.observe(document, { childList: true, subtree: true });
-    }).finally(() => {
-      observer?.disconnect();
-    });
-};
+  const element = parent.querySelector(selector);
+  if (element) return element;
 
-const nodeRemoved = async (node) => {
-  const document = node.ownerDocument;
-  if (!document) return;
-  let observer;
-  return new Promise(resolve => {
+  const {promise, resolve} = Promise.withResolvers();
+  try {
     observer = new MutationObserver(mutationList => {
-      if (!document.contains(node)) {
-        resolve();
-      }
+      const element = parent.querySelector(selector);
+      if (element) resolve(element);
     });
-    observer.observe(document, { childList: true, subtree: true });
-  }).finally(() => {
-    observer?.disconnect();
+    observer.observe(
+      parent, {attributes: true, childList: true, subtree: true});
+    return await promise;
+  } finally {
+    observer.disconnect();
+  }
+};
+
+const elementRemoved = async (element) => {
+  const document = element.ownerDocument;
+  if (!document) return;
+
+  const {promise, resolve} = Promise.withResolvers();
+  const observer = new MutationObserver(mutationList => {
+    if (element.ownerDocument !== document) resolve();
   });
+  try {
+    observer.observe(document, {childList: true, subtree: true});
+    return await promise;
+  } finally {
+    observer?.disconnect();
+  }
 };
 
-const addStyleSheet = text => {
-  const element = document.createElement('style');
-  element.appendChild(document.createTextNode(text));
-  document.head.appendChild(element);
-  return element.sheet;
+const addStyleSheet = document => {
+  let style = document.querySelector('#jobmonkey-style');
+  if (!style) {
+    style = document.createElement('style');
+    style.setAttribute('id', 'jobmonkey-style');
+    style.appendChild(
+      document.createTextNode(
+        '.jm-gone { display: none !important; }\n' +
+        '.jm-hidden { visibility: hidden !important; }\n'));
+    document.head.appendChild(style);
+  }
+  return style.sheet;
 };
 
-const observeNode = async (document, selector, callback) => {
+const observeElement = async (parent, selector, callback) => {
   while (true) {
-    const node = await nodeAdded(document, selector);
-    callback(node);
+    const element = await elementAdded(parent, selector);
+    callback(element);
     const observer =
-      new MutationObserver(mutationList => { callback(node); });
+      new MutationObserver(mutationList => { callback(element); });
     try {
       observer.observe(
-        node, { attributes: true, childList: true, subtree: true });
-      await nodeRemoved(node);
+        element, {attributes: true, childList: true, subtree: true});
+      await elementRemoved(element);
     } finally {
       observer.disconnect();
     }
@@ -271,24 +283,28 @@ const observeNode = async (document, selector, callback) => {
 };
 
 const observeFeed = () => {
-  observeNode(document, selectors.feed, scrubFeed);
+  observeElement(document, selectors.feed, scrubFeed);
 };
 
 const observeNews = () => {
-  observeNode(document, selectors.newsModule, scrubNews);
+  observeElement(document, selectors.newsModule, scrubNews);
 };
 
 const observeJobList = () => {
-  observeNode(document, selectors.jobList, scrubJobList);
+  observeElement(
+   document,
+   `${selectors.jobSearch} ${selectors.jobList}`,
+   scrubJobList);
 };
 
 const observeJobDetails = () => {
-  observeNode(document, selectors.jobDetails, scrubJobDetails);
+  observeElement(
+    document,
+    `${selectors.jobSearch} ${selectors.jobDetails}`,
+    scrubJobDetails);
 };
 
-const styleSheet = addStyleSheet(
-  '.jm-gone { display: none !important; }\n' +
-  '.jm-hidden { visibility: hidden !important; }\n');
+const styleSheet = addStyleSheet(document);
 
 observeFeed();
 observeNews();
