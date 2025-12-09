@@ -217,38 +217,51 @@ const scrubJobDetails = details => {
   }
 };
 
-const elementAdded = async (parent, selector) => {
-  let observer;
+const elementAdded = async (parent, selector, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
   const element = parent.querySelector(selector);
   if (element) return element;
 
-  const {promise, resolve} = Promise.withResolvers();
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const abortListener = () => reject(signal.reason);
+  const observer = new MutationObserver(mutationList => {
+    if (signal?.aborted) return;
+    const element = parent.querySelector(selector);
+    if (element) resolve(element);
+  });
   try {
-    observer = new MutationObserver(mutationList => {
-      const element = parent.querySelector(selector);
-      if (element) resolve(element);
-    });
+    signal?.addEventListener('abort', abortListener);
     observer.observe(
       parent, {attributes: true, childList: true, subtree: true});
     return await promise;
   } finally {
     observer.disconnect();
+    signal?.removeEventListener('abort', abortListener);
   }
 };
 
-const elementRemoved = async (element) => {
+const elementRemoved = async (element, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
   const document = element.ownerDocument;
   if (!document) return;
 
-  const {promise, resolve} = Promise.withResolvers();
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const abortListener = () => reject(signal.reason);
   const observer = new MutationObserver(mutationList => {
+    if (signal?.aborted) return;
     if (element.ownerDocument !== document) resolve();
   });
   try {
+    signal?.addEventListener('abort', abortListener);
     observer.observe(document, {childList: true, subtree: true});
     return await promise;
   } finally {
     observer?.disconnect();
+    signal?.removeEventListener('abort', abortListener);
   }
 };
 
@@ -266,50 +279,59 @@ const addStyleSheet = document => {
   return style.sheet;
 };
 
-const observeElement = async (element, callback) => {
-  if (!element.ownerDocument) return;
+const observeElement = async (element, callback, options) => {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
+
+  const document = element.ownerDocument;
+  if (!document) return;
   callback(element);
 
-  const {promise, resolve} = Promise.withResolvers();
-  const observer =
-    new MutationObserver(mutationList => callback(element));
+  const observer = new MutationObserver(mutationList => {
+    if (signal?.aborted || element.ownerDocument !== document) return;
+    callback(element));
+  });
   try {
-    elementRemoved(element, {signal}).then(resolve);
     observer.observe(
       element, {attributes: true, childList: true, subtree: true});
-    await promise;
+    await elementRemoved(element, {signal});
   } finally {
     observer.disconnect();
   }
 };
 
-const observeFeed = async () => {
+const observeFeed = async (options) => {
+  const signal = options?.signal;
   while (true) {
-    const element = await elementAdded(document, selectors.feed);
-    await observeElement(element, scrubFeed);
+    const element = await elementAdded(document, selectors.feed, {signal});
+    await observeElement(element, scrubFeed, {signal});
   }
 };
 
-const observeNews = async () => {
+const observeNews = async (options) => {
+  const signal = options?.signal;
   while (true) {
-    const element = await elementAdded(document, selectors.newsModule);
-    await observeElement(element, scrubNews);
+    const element =
+      await elementAdded(document, selectors.newsModule, {signal});
+    await observeElement(element, scrubNews, {signal});
   }
 };
 
-const observeJobList = async () => {
+const observeJobList = async (options) => {
+  const signal = options?.signal;
   while (true) {
     const element = await elementAdded(
-      document, `${selectors.jobSearch} ${selectors.jobList}`);
-    await observeElement(element, scrubJobList);
+      document, `${selectors.jobSearch} ${selectors.jobList}`, {signal});
+    await observeElement(element, scrubJobList, {signal});
   }
 };
 
-const observeJobDetails = async () => {
+const observeJobDetails = async (options) => {
+  const signal = options?.signal;
   while (true) {
     const element = await elementAdded(
-      document, `${selectors.jobSearch} ${selectors.jobDetails}`);
-    await observeElement(element, scrubJobDetails);
+      document, `${selectors.jobSearch} ${selectors.jobDetails}`, {signal});
+    await observeElement(element, scrubJobDetails, {signal});
   }
 };
 
