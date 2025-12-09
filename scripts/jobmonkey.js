@@ -266,42 +266,51 @@ const addStyleSheet = document => {
   return style.sheet;
 };
 
-const observeElement = async (parent, selector, callback) => {
-  while (true) {
-    const element = await elementAdded(parent, selector);
-    callback(element);
-    const observer =
-      new MutationObserver(mutationList => { callback(element); });
-    try {
-      observer.observe(
-        element, {attributes: true, childList: true, subtree: true});
-      await elementRemoved(element);
-    } finally {
-      observer.disconnect();
-    }
+const observeElement = async (element, callback) => {
+  if (!element.ownerDocument) return;
+  callback(element);
+
+  const {promise, resolve} = Promise.withResolvers();
+  const observer =
+    new MutationObserver(mutationList => callback(element));
+  try {
+    elementRemoved(element, {signal}).then(resolve);
+    observer.observe(
+      element, {attributes: true, childList: true, subtree: true});
+    await promise;
+  } finally {
+    observer.disconnect();
   }
 };
 
-const observeFeed = () => {
-  observeElement(document, selectors.feed, scrubFeed);
+const observeFeed = async () => {
+  while (true) {
+    const element = await elementAdded(document, selectors.feed);
+    await observeElement(element, scrubFeed);
+  }
 };
 
-const observeNews = () => {
-  observeElement(document, selectors.newsModule, scrubNews);
+const observeNews = async () => {
+  while (true) {
+    const element = await elementAdded(document, selectors.newsModule);
+    await observeElement(element, scrubNews);
+  }
 };
 
-const observeJobList = () => {
-  observeElement(
-   document,
-   `${selectors.jobSearch} ${selectors.jobList}`,
-   scrubJobList);
+const observeJobList = async () => {
+  while (true) {
+    const element = await elementAdded(
+      document, `${selectors.jobSearch} ${selectors.jobList}`);
+    await observeElement(element, scrubJobList);
+  }
 };
 
-const observeJobDetails = () => {
-  observeElement(
-    document,
-    `${selectors.jobSearch} ${selectors.jobDetails}`,
-    scrubJobDetails);
+const observeJobDetails = async () => {
+  while (true) {
+    const element = await elementAdded(
+      document, `${selectors.jobSearch} ${selectors.jobDetails}`);
+    await observeElement(element, scrubJobDetails);
+  }
 };
 
 const styleSheet = addStyleSheet(document);
