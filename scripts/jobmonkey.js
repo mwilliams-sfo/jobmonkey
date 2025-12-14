@@ -217,6 +217,26 @@ const scrubJobDetails = details => {
   }
 };
 
+const abortingPromiseWithResolvers = signal => {
+  const {promise, resolve, reject} = Promise.withResolvers();
+  return {
+    promise:
+      !signal ? promise :
+      signal.aborted ? (reject(signal.reason), promise) :
+      (async () => {
+        const abortListener = () => reject(signal.reason);
+        try {
+          signal.addEventListener('abort', abortListener);
+          return await promise;
+        } finally {
+          signal.removeEventListener('abort', abortListener);
+        }
+      })(),
+    resolve,
+    reject
+  };
+};
+
 const elementAdded = async (parent, selector, options) => {
   const signal = options?.signal;
   signal?.throwIfAborted();
@@ -224,21 +244,17 @@ const elementAdded = async (parent, selector, options) => {
   const element = parent.querySelector(selector);
   if (element) return element;
 
-  const {promise, resolve, reject} = Promise.withResolvers();
-  const abortListener = () => reject(signal.reason);
+  const {promise, resolve, reject} = abortingPromiseWithResolvers(signal);
   const observer = new MutationObserver(mutationList => {
-    if (signal?.aborted) return;
     const element = parent.querySelector(selector);
     if (element) resolve(element);
   });
   try {
-    signal?.addEventListener('abort', abortListener);
     observer.observe(
       parent, {attributes: true, childList: true, subtree: true});
     return await promise;
   } finally {
     observer.disconnect();
-    signal?.removeEventListener('abort', abortListener);
   }
 };
 
@@ -249,19 +265,15 @@ const elementRemoved = async (element, options) => {
   const document = element.ownerDocument;
   if (!document) return;
 
-  const {promise, resolve, reject} = Promise.withResolvers();
-  const abortListener = () => reject(signal.reason);
+  const {promise, resolve, reject} = abortingPromiseWithResolvers(signal);
   const observer = new MutationObserver(mutationList => {
-    if (signal?.aborted) return;
     if (element.ownerDocument !== document) resolve();
   });
   try {
-    signal?.addEventListener('abort', abortListener);
     observer.observe(document, {childList: true, subtree: true});
     return await promise;
   } finally {
     observer?.disconnect();
-    signal?.removeEventListener('abort', abortListener);
   }
 };
 
@@ -285,11 +297,10 @@ const observeElement = async (element, callback, options) => {
 
   const document = element.ownerDocument;
   if (!document) return;
-  callback(element);
 
+  callback(element);
   const observer = new MutationObserver(mutationList => {
-    if (signal?.aborted || element.ownerDocument !== document) return;
-    callback(element));
+    if (element.ownerDocument === document) callback(element);
   });
   try {
     observer.observe(
