@@ -237,6 +237,19 @@ const abortingPromiseWithResolvers = signal => {
   };
 };
 
+const abortGroup = async (signal, func) => {
+  const {promise, resolve, reject} = Promise.withResolvers();
+  const groupController = new AbortController();
+  try {
+    groupSignal =
+      signal ? AbortSignal.any([signal, groupController.signal]) :
+      groupController.signal;
+    return await func(groupSignal);
+  } finally {
+    groupController.abort(new Error('Group complete'));
+  }
+};
+
 const elementAdded = async (parent, selector, options) => {
   const signal = options?.signal;
   signal?.throwIfAborted();
@@ -328,21 +341,32 @@ const observeNews = async (options) => {
   }
 };
 
-const observeJobList = async (options) => {
+const observeJobList = async (layout, options) => {
   const signal = options?.signal;
   while (true) {
-    const element = await elementAdded(
-      document, `${selectors.jobSearch} ${selectors.jobList}`, {signal});
+    const element = await elementAdded(layout, selectors.jobList, {signal});
     await observeElement(element, scrubJobList, {signal});
   }
 };
 
-const observeJobDetails = async (options) => {
+const observeJobDetails = async (layout, options) => {
   const signal = options?.signal;
   while (true) {
-    const element = await elementAdded(
-      document, `${selectors.jobSearch} ${selectors.jobDetails}`, {signal});
+    const element =
+      await elementAdded(layout, selectors.jobDetails, {signal});
     await observeElement(element, scrubJobDetails, {signal});
+  }
+};
+
+const observeJobSearch = async (options) => {
+  const signal = options?.signal;
+  while (true) {
+    const element = await elementAdded(document, selectors.jobSearch, {signal});
+    await abortGroup(signal, async (signal) => {
+      observeJobList(element, {signal});
+      observeJobDetails(element, {signal});
+      return elementRemoved(element);
+    });
   }
 };
 
@@ -350,5 +374,4 @@ const styleSheet = addStyleSheet(document);
 
 observeFeed();
 observeNews();
-observeJobList();
-observeJobDetails();
+observeJobSearch();
