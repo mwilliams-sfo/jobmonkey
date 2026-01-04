@@ -241,7 +241,7 @@ const abortGroup = async (signal, func) => {
   const {promise, resolve, reject} = Promise.withResolvers();
   const groupController = new AbortController();
   try {
-    groupSignal =
+    const groupSignal =
       signal ? AbortSignal.any([signal, groupController.signal]) :
       groupController.signal;
     return await func(groupSignal);
