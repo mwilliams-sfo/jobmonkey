@@ -271,16 +271,15 @@ const elementAdded = async (parent, selector, options) => {
   }
 };
 
-const elementRemoved = async (element, options) => {
+const elementRemoved = async (parent, element, options) => {
   const signal = options?.signal;
   signal?.throwIfAborted();
 
-  const document = element.ownerDocument;
-  if (!document) return;
+  if (!document.contains(parent) || !parent.contains(element)) return;
 
   const {promise, resolve, reject} = abortingPromiseWithResolvers(signal);
   const observer = new MutationObserver(mutationList => {
-    if (element.ownerDocument !== document) resolve();
+    if (!document.contains(parent) || !parent.contains(element)) resolve();
   });
   try {
     observer.observe(document, {childList: true, subtree: true});
@@ -304,21 +303,22 @@ const addStyleSheet = document => {
   return style.sheet;
 };
 
-const observeElement = async (element, callback, options) => {
+const observeElement = async (parent, element, callback, options) => {
   const signal = options?.signal;
   signal?.throwIfAborted();
 
-  const document = element.ownerDocument;
-  if (!document) return;
+  if (!document.contains(parent) || !parent.contains(element)) return;
 
   callback(element);
   const observer = new MutationObserver(mutationList => {
-    if (element.ownerDocument === document) callback(element);
+    if (document.contains(parent) && parent.contains(element)) {
+      callback(element);
+    }
   });
   try {
     observer.observe(
       element, {attributes: true, childList: true, subtree: true});
-    await elementRemoved(element, {signal});
+    await elementRemoved(parent, element, {signal});
   } finally {
     observer.disconnect();
   }
@@ -328,7 +328,7 @@ const observeFeed = async (options) => {
   const signal = options?.signal;
   while (true) {
     const element = await elementAdded(document, selectors.feed, {signal});
-    await observeElement(element, scrubFeed, {signal});
+    await observeElement(document, element, scrubFeed, {signal});
   }
 };
 
@@ -337,7 +337,7 @@ const observeNews = async (options) => {
   while (true) {
     const element =
       await elementAdded(document, selectors.newsModule, {signal});
-    await observeElement(element, scrubNews, {signal});
+    await observeElement(document, element, scrubNews, {signal});
   }
 };
 
@@ -345,7 +345,7 @@ const observeJobList = async (layout, options) => {
   const signal = options?.signal;
   while (true) {
     const element = await elementAdded(layout, selectors.jobList, {signal});
-    await observeElement(element, scrubJobList, {signal});
+    await observeElement(layout, element, scrubJobList, {signal});
   }
 };
 
@@ -354,18 +354,18 @@ const observeJobDetails = async (layout, options) => {
   while (true) {
     const element =
       await elementAdded(layout, selectors.jobDetails, {signal});
-    await observeElement(element, scrubJobDetails, {signal});
+    await observeElement(layout, element, scrubJobDetails, {signal});
   }
 };
 
 const observeJobSearch = async (options) => {
   const signal = options?.signal;
   while (true) {
-    const element = await elementAdded(document, selectors.jobSearch, {signal});
+    const layout = await elementAdded(document, selectors.jobSearch, {signal});
     await abortGroup(signal, async (signal) => {
-      observeJobList(element, {signal});
-      observeJobDetails(element, {signal});
-      return elementRemoved(element);
+      observeJobList(layout, {signal});
+      observeJobDetails(layout, {signal});
+      return elementRemoved(document, layout, {signal});
     });
   }
 };
