@@ -76,6 +76,51 @@ const companyExclusions = [
   /tek\b/i,
 ];
 
+class AbortablePromise extends Promise {
+  constructor(executor, signal) {
+    if (!signal) {
+      super(executor);
+      return;
+    }
+    if (typeof executor != 'function') {
+      throw TypeError('executor is not callable');
+    }
+    if (!(signal instanceof AbortSignal)) {
+      throw TypeError('signal is not an AbortSignal');
+    }
+    super((resolve, reject) => {
+      signal?.throwIfAborted(Error('Aborted'));
+      const listener = evt => reject(Error('Aborted'));
+      signal?.addEventListener('abort', listener);
+      try {
+        executor(
+          value => {
+            signal?.removeEventListener('abort', listener);
+            resolve(value);
+          },
+          reason => {
+            signal?.removeEventListener('abort', listener);
+            reject(reason);
+          });
+      } catch (e) {
+        signal?.removeEventListener('abort', listener);
+        throw e;
+      }
+    });
+  }
+
+  static withResolvers(signal) {
+    let resolve, reject
+    const promise = new AbortablePromise(
+      (res, rej) => {
+        resolve = res;
+        reject = rej;
+      },
+      signal);
+    return {promise, resolve, reject};
+  }
+}
+
 const setGone = (elt, gone) => { elt.classList.toggle('jm-gone', gone); };
 
 const setHidden = (elt, hidden) => {
@@ -217,39 +262,6 @@ const scrubJobDetails = details => {
   }
 };
 
-const abortingPromiseWithResolvers = signal => {
-  const {promise, resolve, reject} = Promise.withResolvers();
-  return {
-    promise:
-      !signal ? promise :
-      signal.aborted ? (reject(signal.reason), promise) :
-      (async () => {
-        const abortListener = () => reject(signal.reason);
-        try {
-          signal.addEventListener('abort', abortListener);
-          return await promise;
-        } finally {
-          signal.removeEventListener('abort', abortListener);
-        }
-      })(),
-    resolve,
-    reject
-  };
-};
-
-const abortGroup = async (signal, func) => {
-  const {promise, resolve, reject} = Promise.withResolvers();
-  const groupController = new AbortController();
-  try {
-    const groupSignal =
-      signal ? AbortSignal.any([signal, groupController.signal]) :
-      groupController.signal;
-    return await func(groupSignal);
-  } finally {
-    groupController.abort(new Error('Group complete'));
-  }
-};
-
 const elementAdded = async (parent, selector, options) => {
   const signal = options?.signal;
   signal?.throwIfAborted();
@@ -257,7 +269,7 @@ const elementAdded = async (parent, selector, options) => {
   const element = parent.querySelector(selector);
   if (element) return element;
 
-  const {promise, resolve, reject} = abortingPromiseWithResolvers(signal);
+  const {promise, resolve, reject} = AbortablePromise.withResolvers(signal);
   const observer = new MutationObserver(mutationList => {
     const element = parent.querySelector(selector);
     if (element) resolve(element);
@@ -277,7 +289,7 @@ const elementRemoved = async (parent, element, options) => {
 
   if (!document.contains(parent) || !parent.contains(element)) return;
 
-  const {promise, resolve, reject} = abortingPromiseWithResolvers(signal);
+  const {promise, resolve, reject} = AbortablePromise.withResolvers(signal);
   const observer = new MutationObserver(mutationList => {
     if (!document.contains(parent) || !parent.contains(element)) resolve();
   });
@@ -362,11 +374,17 @@ const observeJobSearch = async (options) => {
   const signal = options?.signal;
   while (true) {
     const layout = await elementAdded(document, selectors.jobSearch, {signal});
-    await abortGroup(signal, async (signal) => {
-      observeJobList(layout, {signal});
-      observeJobDetails(layout, {signal});
-      return elementRemoved(document, layout, {signal});
-    });
+    const localController = new AbortController();
+    try {
+      const localSignal =
+        signal ? AbortSignal.any([signal, localController.signal]) :
+        localController.signal;
+      observeJobList(layout, {signal: localSignal});
+      observeJobDetails(layout, {signal: localSignal});
+      await elementRemoved(document, layout, {signal});
+    } finally {
+      controller.abort(Error('Task complete'));
+    }
   }
 };
 
