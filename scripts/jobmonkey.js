@@ -1,12 +1,13 @@
 
 const selectors = {
+  workspace: '#workspace',
+
   feed: 'div[data-testid=mainFeed]',
   feedItem: 'div > div > div[role=listitem]',
   feedItemHeaderText:
     'div > div > div:has(+ button[aria-label^="Open control menu for post by "]) > div > p',
 
-  newsModule: '#feed-news-module',
-  newsSubheader: '.news-module__subheader',
+  moduleHeadline: 'div > div > p',
 
   jobSearch: '.jobs-search-two-pane__layout',
   jobList: '.scaffold-layout__list ul:has(> li.scaffold-layout__list-item)',
@@ -144,11 +145,24 @@ const splitTerms = str => {
   return terms;
 };
 
+
+const getPuzzleModules = parent =>
+  Array.from(parent.querySelectorAll(selectors.moduleHeadline))
+   .filter(it => it.textContent.trim() === 'Today\u2019s puzzles')
+   .map(it => it.parentNode.parentNode.parentNode);
+
 const isSuggestedPost = feedItem =>
   feedItem
     .querySelector(selectors.feedItemHeaderText)
     ?.textContent
     ?.trim() === 'Suggested';
+
+const scrubWorkspace = workspace => {
+  const puzzleModules = getPuzzleModules(workspace);
+  for (const module of puzzleModules) {
+    setGone(module, true);
+  }
+};
 
 const scrubFeed = feed => {
   const items =
@@ -158,21 +172,6 @@ const scrubFeed = feed => {
   for (const item of items) {
     setGone(item, isSuggestedPost(item));
   }
-};
-
-const scrubNews = news => {
-  news.querySelectorAll(selectors.newsSubheader).forEach((subheader, index) => {
-    if (index > 0) {
-      // Hide the subheader and any content under it.
-      setGone(subheader, true);
-      for (let node = subheader.nextSibling; node; node = node.nextSibling) {
-        if (node.nodeType == Node.ELEMENT_NODE) {
-          if (node.classList.contains('news-module__subheader')) break;
-          setGone(node, true);
-        }
-      }
-    }
-  });
 };
 
 const isInterestingTitle = title => {
@@ -339,20 +338,36 @@ const observeElement = async (parent, element, callback, options) => {
   }
 };
 
-const observeFeed = async (options) => {
+const observeFeed = async (parent, options) => {
   const signal = options?.signal;
   while (true) {
-    const element = await elementAdded(document, selectors.feed, {signal});
-    await observeElement(document, element, scrubFeed, {signal});
+    const feed = await elementAdded(parent, selectors.feed, {signal});
+    await observeElement(parent, feed, scrubFeed, {signal});
   }
 };
 
-const observeNews = async (options) => {
+const observeWorkspace = async (options) => {
   const signal = options?.signal;
   while (true) {
-    const element =
-      await elementAdded(document, selectors.newsModule, {signal});
-    await observeElement(document, element, scrubNews, {signal});
+    const workspace = await elementAdded(document, selectors.workspace, {signal});
+    scrubWorkspace(workspace);
+    const localController = new AbortController();
+    const observer =
+      new MutationObserver(mutationList => { scrubWorkspace(workspace); });
+    try {
+      const localSignal =
+        signal ? AbortSignal.any([signal, localController.signal]) :
+        localController.signal;
+
+      observer.observe(
+        workspace, {attributes: true, childList: true, subtree: true});
+      observeFeed(workspace, {signal: localSignal});
+
+      await elementRemoved(document, workspace, {signal});
+    } finally {
+      observer.disconnect();
+      localController.abort(Error('Task complete'));
+    }
   }
 };
 
@@ -393,6 +408,5 @@ const observeJobSearch = async (options) => {
 
 const styleSheet = addStyleSheet(document);
 
-observeFeed();
-observeNews();
+observeWorkspace();
 observeJobSearch();
