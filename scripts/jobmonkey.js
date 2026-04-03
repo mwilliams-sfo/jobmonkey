@@ -1,8 +1,9 @@
 
 const selectors = {
-  feed: 'div[data-finite-scroll-hotkey-context=FEED]',
+  feed: 'div[data-testid=mainFeed]',
+  feedItem: 'div > div > div[role=listitem]',
   feedItemHeaderText:
-    '.update-components-header .update-components-header__text-view',
+    'div > div > div:has(+ button[aria-label^="Open control menu for post by "]) > div > p',
 
   newsModule: '#feed-news-module',
   newsSubheader: '.news-module__subheader',
@@ -150,10 +151,12 @@ const isSuggestedPost = feedItem =>
     ?.trim() === 'Suggested';
 
 const scrubFeed = feed => {
-  for (const child of feed.childNodes) {
-    if (child.nodeType == Node.ELEMENT_NODE && child.tagName == 'DIV') {
-      setGone(child, isSuggestedPost(child));
-    }
+  const items =
+    Array.from(feed.querySelectorAll(selectors.feedItem))
+      .filter(it =>
+        it.parentNode?.parentNode?.parentNode?.parentNode === feed);
+  for (const item of items) {
+    setGone(item, isSuggestedPost(item));
   }
 };
 
