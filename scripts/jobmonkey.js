@@ -3,7 +3,7 @@ const selectors = {
   workspace: '#workspace',
 
   feed: 'div[data-testid=mainFeed]',
-  feedItem: 'div > div > div[role=listitem]',
+  feedItem: 'div > div > div > div > div[role=listitem]',
   feedItemHeaderText:
     'div > div > div:has(+ button[aria-label^="Open control menu for post by "]) > div > p',
 
@@ -168,7 +168,7 @@ const scrubFeed = feed => {
   const items =
     Array.from(feed.querySelectorAll(selectors.feedItem))
       .filter(it =>
-        it.parentNode?.parentNode?.parentNode?.parentNode === feed);
+        it.parentNode?.parentNode?.parentNode?.parentNode?.parentNode === feed);
   for (const item of items) {
     setGone(item, isSuggestedPost(item));
   }
