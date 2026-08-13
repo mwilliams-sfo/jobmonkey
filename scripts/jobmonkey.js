@@ -419,7 +419,7 @@ const observeJobSearch = async (options) => {
       observeJobDetails(layout, {signal: localSignal});
       await elementRemoved(document, layout, {signal});
     } finally {
-      controller.abort(Error('Task complete'));
+      localController.abort(Error('Task complete'));
     }
   }
 };
