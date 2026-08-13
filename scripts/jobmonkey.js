@@ -12,7 +12,7 @@ const selectors = {
   jobList: '*[componentkey=SearchResultsMainContent]',
   jobCard: '*[componentkey^="job-card-component-ref-"][role=button]',
   jobInfo: 'figure + div > div > div > div',
-  jobTitle: '*:nth-child(1) > p > span[aria-role=hidden]',
+  jobTitle: '*:nth-child(1) > p > span[aria-hidden=true]',
   jobCompany: '*:nth-child(2) > p',
   jobLocation: '*:nth-child(3) > p',
   jobDetails: '*[data-sdui-screen="com.linkedin.sdui.flagshipnav.jobs.SemanticJobDetails"]',
