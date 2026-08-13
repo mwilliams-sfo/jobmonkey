@@ -57,7 +57,7 @@ const companyExclusions = [
   /Neuralink/,
   /Nextdoor/,
   /OKX/,
-  /OSI Engineering/,
+  // /OSI Engineering/,
   /Perplexity/,
   /Rivian/,
   /Roblox/,
@@ -71,13 +71,13 @@ const companyExclusions = [
   /\bai\b/i,
   /^coin/i,
   /consult/i,
-  /\bgroup\b/i,
+  // /\bgroup\b/i,
   /infote/i,
   /^intelli/i,
-  / llc$/i,
-  /resourc/i,
-  /solutions/i,
-  /staffing/i,
+  // / llc$/i,
+  // /resourc/i,
+  // /solutions/i,
+  // /staffing/i,
   /^tek/i,
   /tek\b/i,
 ];
@@ -181,7 +181,7 @@ const scrubFeed = feed => {
 };
 
 const isInterestingTitle = title => {
-  if (title.match(/\b(?:manager|principal|lead|test|tester|ai|qa|security|analyst|researcher)\b/i)) {
+  if (title.match(/\b(?:manager|principal|lead|leader|test|tester|ai|qa|security|analyst|researcher)\b/i)) {
     return false;
   }
 
