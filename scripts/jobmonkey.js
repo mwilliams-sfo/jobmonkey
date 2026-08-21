@@ -184,7 +184,7 @@ const scrubFeed = feed => {
 };
 
 const isInterestingTitle = title => {
-  if (title.match(/\b(?:manager|principal|lead|leader|test|tester|ai|qa|security|analyst|researcher)\b/i)) {
+  if (title.match(/\b(?:manager|principal|lead|leader|test|tester|ai|qa|security|analyst|researcher|director|intern|junior)\b/i)) {
     return false;
   }
 
