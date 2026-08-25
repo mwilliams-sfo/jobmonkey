@@ -29,6 +29,7 @@ const selectors = {
 const companyExclusions = [
   /Braintrust/,
   /Capgemini/,
+  /Clera/,
   /Cognizant/,
   /Compunnel/,
   /GlobalLogic/,
@@ -52,6 +53,8 @@ const companyExclusions = [
   /ByteDance/,
   /Canonical/,
   /Cash App/,
+  /EarnIn/,
+  /Google DeepMind/,
   /Grindr/,
   /Kohler Ventures/,
   /LinkedIn/,
@@ -70,6 +73,7 @@ const companyExclusions = [
   /SpaceX/,
   /Tesla/,
   /TikTok/,
+  /Wells Fargo/,
   /^World$/,
 
   /\w+AI\b/,
@@ -121,7 +125,7 @@ class AbortablePromise extends Promise {
   }
 
   static withResolvers(signal) {
-    let resolve, reject
+    let resolve, reject;
     const promise = new AbortablePromise(
       (res, rej) => {
         resolve = res;
