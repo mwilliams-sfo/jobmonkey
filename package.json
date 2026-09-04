@@ -1,7 +1,7 @@
 {
   "name": "jobmonkey",
   "version": "1.0.0",
-  "description": "A Chrome extension that I made to improve my LinkedIn experience",
+  "description": "A Chrome extension that I made to improve my job searching experience",
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {

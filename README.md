@@ -1,1 +1,1 @@
-A Chrome extension that I made to improve my LinkedIn experience
+A Chrome extension that I made to improve my job searching experience
