@@ -2,6 +2,7 @@
 import {isExcludedCompany, isExcludedTitle} from '../filter';
 import AbortablePromise from '../util/abortable-promise';
 import {elementAdded, elementRemoved, observeElement} from '../util/observe';
+import {splitTerms} from '../util/split';
 
 const selectors = {
   workspace: '#workspace',
@@ -36,21 +37,6 @@ const setHidden = (elt, hidden) => {
 };
 
 const isHidden = elt => elt.classList.contains('jm-hidden');
-
-const splitTerms = str => {
-  const terms = [];
-  while (str = str.trimStart()) {
-    const re =
-      str.startsWith('\'') ? /^'([^']*)'?/ :
-      str.startsWith('"') ? /^"([^"]*)"?/ :
-      /^(\S*)/;
-    const match = re.exec(str);
-    terms.push(match[1]);
-    str = str.substr(match[0].length);
-  }
-  return terms;
-};
-
 
 const getPuzzleModules = parent =>
   Array.from(parent.querySelectorAll(selectors.moduleHeadline))
