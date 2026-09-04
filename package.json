@@ -1,0 +1,13 @@
+{
+  "name": "jobmonkey",
+  "version": "1.0.0",
+  "description": "A Chrome extension that I made to improve my LinkedIn experience",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "build": "node ./build.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
