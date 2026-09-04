@@ -1,5 +1,6 @@
 
 import AbortablePromise from '../util/abortable-promise';
+import {isExcludedCompany, isExcludedTitle} from '../filter';
 
 const selectors = {
   workspace: '#workspace',
@@ -26,72 +27,6 @@ const selectors = {
   fitLevelCard: '.job-details-fit-level-card',
   upsellPremiumContainer: '.upsell-premium-custom-section-card__container',
 };
-
-// No offense.
-const companyExclusions = [
-  /Braintrust/,
-  /Capgemini/,
-  /Clera/,
-  /Cognizant/,
-  /Compunnel/,
-  /GlobalLogic/,
-  /HCLTech/,
-  /Infojini/,
-  /Infosys/,
-  /Jobs via Dice/,
-  /Motion Recruitment/,
-  /Net2Source/,
-  /NTT DATA/,
-  /Robert Half/,
-  /The Mom Project/,
-  /Verticalmove/,
-  /Wipro/,
-
-  /Amazon/,
-  /Anthropic/,
-  /Apple/,
-  /^Block$/,
-  /Blue Origin/,
-  /ByteDance/,
-  /Canonical/,
-  /Cash App/,
-  /EarnIn/,
-  /Google DeepMind/,
-  /Grindr/,
-  /Kohler Ventures/,
-  /LinkedIn/,
-  /Lucid Motors/,
-  /Meta/,
-  /Microsoft/,
-  /Monogram/,
-  /Neuralink/,
-  /Nextdoor/,
-  /OKX/,
-  /Perplexity/,
-  /Rivian/,
-  /Roblox/,
-  /SiriusXM/,
-  /SpaceX/,
-  /Temu/,
-  /Tesla/,
-  /TikTok/,
-  /Wells Fargo/,
-  /^World$/,
-
-  /\w+AI\b/,
-  /\bai\b/i,
-  /^coin/i,
-  /consult/i,
-  // /\bgroup\b/i,
-  /infote/i,
-  /^intelli/i,
-  // / llc$/i,
-  // /resourc/i,
-  // /solutions/i,
-  // /staffing/i,
-  /^tek/i,
-  /tek\b/i,
-];
 
 const setGone = (elt, gone) => { elt.classList.toggle('jm-gone', gone); };
 
@@ -145,7 +80,7 @@ const scrubFeed = feed => {
 };
 
 const isInterestingTitle = title => {
-  if (title.match(/\b(?:manager|principal|lead|leader|test|tester|ai|qa|security|analyst|researcher|director|intern|junior)\b/i)) {
+  if (isExcludedTitle(title)) {
     return false;
   }
 
@@ -163,9 +98,6 @@ const isInterestingTitle = title => {
   return true;
 };
 
-const isInterestingCompany = company =>
-  !companyExclusions.some(it => company.match(it));
-
 const isUnitedStatesSearch = () =>
   new URL(document.URL).searchParams.get('geoid') === '103644278';
 
@@ -175,7 +107,7 @@ const isInterestingJob = job => {
 
   const company =
     job.querySelector(selectors.jobCompany)?.textContent?.trim();
-  if (company && !isInterestingCompany(company)) return false;
+  if (company && isExcludedCompany(company)) return false;
 
   const location =
     job.querySelector(selectors.jobLocation)?.textContent?.trim();
