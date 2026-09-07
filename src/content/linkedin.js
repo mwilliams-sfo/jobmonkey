@@ -14,20 +14,17 @@ const selectors = {
 
   moduleHeadline: 'div > div > p',
 
-  jobSearch: '.jobs-search-two-pane__layout',
-  jobList: '.scaffold-layout__list ul:has(> li.scaffold-layout__list-item)',
-  activeJob: '.jobs-search-results-list__list-item--active',
-  jobClickable: '.job-card-container--clickable',
-  jobTitle: '.job-card-list__title--link strong',
-  jobCompany: '.artdeco-entity-lockup__subtitle',
-  jobLocation: '.artdeco-entity-lockup__caption',
-
-  jobDetails: '.jobs-search__job-details',
-  jobDetailsModule: '.job-details-module',
-  jobDetailsDescription: '.jobs-description',
-  jobDetailsCompany: '*[data-view-name=job-details-about-company-module]',
-  fitLevelCard: '.job-details-fit-level-card',
-  upsellPremiumContainer: '.upsell-premium-custom-section-card__container',
+  jobSearchLayout: 'header:has([componentkey="searchResultsHeaderComponent"]) + div',
+  jobList: '[componentkey=SearchResultsMainContent]',
+  jobCard: 'div:has([componentkey^="job-card-component-ref-"])',
+  jobAttributes: 'figure + div > div > div > div',
+  jobDetails: 'div:has(> div > [componentkey=SearchResultsMainContent]) + div *[data-component-type=LazyColumn]',
+  jobMatch: '[data-sdui-component="com.linkedin.sdui.generated.jobseeker.dsl.impl.jobMatch"]',
+  aboutJob: '[componentkey^="JobDetails_AboutTheJob_"]',
+  peopleWhoCanHelp: '[componentkey^="JobDetailsPeopleWhoCanHelpSlot_"]',
+  applicantInsights: '[componentkey^="JobDetails_PremiumApplicantInsights_"]',
+  companyInsights: '[componentkey^="JobDetails_PremiumCompanyInsights_"]',
+  aboutCompany: '[componentkey^="JobDetails_AboutTheCompany_"]',
 };
 
 const setGone = (elt, gone) => { elt.classList.toggle('jm-gone', gone); };
@@ -85,71 +82,63 @@ const isInterestingTitle = title => {
   return true;
 };
 
-const isUnitedStatesSearch = () =>
-  new URL(document.URL).searchParams.get('geoid') === '103644278';
-
 const isInterestingJob = job => {
-  const title = job.querySelector(selectors.jobTitle)?.textContent?.trim();
+  const attributes = job.querySelector(selectors.jobAttributes);
+
+  const title =
+    attributes.childNodes[0]?.querySelector('p > span')?.textContent?.trim();
   if (title && !isInterestingTitle(title)) return false;
 
   const company =
-    job.querySelector(selectors.jobCompany)?.textContent?.trim();
+    attributes.childNodes[1]?.querySelector('p')?.textContent?.trim();
   if (company && isExcludedCompany(company)) return false;
 
-  const location =
-    job.querySelector(selectors.jobLocation)?.textContent?.trim();
-  if (location === 'United States (Remote)' && !isUnitedStatesSearch()) {
-    return false
-  }
+  const location = attributes.childNodes[2]?.textContent?.trim();
+  if (location === 'United States (Remote)') return false;
 
   return true;
 };
 
-const fixSelection = list => {
-  const jobs =
-    Array.from(list.childNodes)
-      .filter(it => it.nodeType == Node.ELEMENT_NODE && it.tagName == 'LI');
-  const activeJob = jobs.find(it => it.querySelector(selectors.activeJob));
-  if (!activeJob || !isHidden(activeJob)) return;
-
-  // Search forward for another job to select, with wrap-around.
-  for (
-    let otherJob = activeJob.nextSibling ?? list.firstChild;
-    otherJob && otherJob !== activeJob;
-    otherJob = otherJob.nextSibling ?? list.firstChild
-  ) {
-    if (
-      otherJob.nodeType == Node.ELEMENT_NODE && otherJob.tagName == 'LI' &&
-      !isHidden(otherJob)
-    ) {
-      otherJob.querySelector(selectors.jobClickable)?.click();
-      break;
-    }
-  }
-};
-
 const scrubJobList = list => {
-  for (const child of list.childNodes) {
-    if (child.nodeType == Node.ELEMENT_NODE && child.tagName == 'LI') {
-      setHidden(child, !isInterestingJob(child));
-    }
+  const jobs =
+    Array.from(list.childNodes).filter(
+      it => it.nodeType == Node.ELEMENT_NODE && it.matches(selectors.jobCard));
+  for (const job of jobs) {
+    setHidden(job, !isInterestingJob(job));
   }
-  fixSelection(list);
 };
 
 const scrubJobDetails = details => {
-  for (const module of details.querySelectorAll(selectors.jobDetailsModule)) {
-    if (
-      module.id !== 'SALARY' &&
-      !module.matches(selectors.jobDetailsDescription) &&
-      !module.querySelector(selectors.jobDetailsCompany)
-    ) {
-      setGone(module, true);
+  const aboutJob = details.querySelector(selectors.aboutJob);
+
+  const peopleWhoCanHelp = details.querySelector(selectors.peopleWhoCanHelp);
+  if (peopleWhoCanHelp) {
+    setGone(peopleWhoCanHelp, true);
+  }
+
+  const jobMatch = details.querySelector(selectors.jobMatch);
+  if (aboutJob && jobMatch) {
+    for (var elt = jobMatch; elt; elt = elt.parentNode) {
+      if (elt.parentNode == aboutJob.parentNode) {
+        setGone(elt, true);
+        break;
+      }
     }
   }
-  const upsell = details.querySelector(selectors.upsellPremiumContainer)
-  if (upsell) {
-    setGone(upsell, true);
+
+  const applicantInsights = details.querySelector(selectors.applicantInsights);
+  if (applicantInsights) {
+    setGone(applicantInsights, true);
+  }
+
+  const companyInsights = details.querySelector(selectors.companyInsights);
+  if (companyInsights) {
+    setGone(companyInsights, true);
+  }
+
+  const aboutCompany = details.querySelector(selectors.aboutCompany);
+  if (aboutCompany) {
+    setGone(aboutCompany, true);
   }
 };
 
@@ -203,24 +192,25 @@ const observeWorkspace = async (options) => {
 const observeJobList = async (layout, options) => {
   const signal = options?.signal;
   while (true) {
-    const element = await elementAdded(layout, selectors.jobList, {signal});
-    await observeElement(layout, element, scrubJobList, {signal});
+    const list = await elementAdded(layout, selectors.jobList, {signal});
+    await observeElement(layout, list, scrubJobList, {signal});
   }
 };
 
 const observeJobDetails = async (layout, options) => {
   const signal = options?.signal;
   while (true) {
-    const element =
+    const details =
       await elementAdded(layout, selectors.jobDetails, {signal});
-    await observeElement(layout, element, scrubJobDetails, {signal});
+    await observeElement(layout, details, scrubJobDetails, {signal});
   }
 };
 
 const observeJobSearch = async (options) => {
   const signal = options?.signal;
   while (true) {
-    const layout = await elementAdded(document, selectors.jobSearch, {signal});
+    const layout =
+      await elementAdded(document, selectors.jobSearchLayout, {signal});
     const localController = new AbortController();
     try {
       const localSignal =
@@ -235,7 +225,9 @@ const observeJobSearch = async (options) => {
   }
 };
 
-const styleSheet = addStyleSheet(document);
-
-observeWorkspace();
-observeJobSearch();
+window.addEventListener('load', function loadListener(evt) {
+  evt.target.defaultView.removeEventListener('load', loadListener);
+  const styleSheet = addStyleSheet(document);
+  observeWorkspace();
+  observeJobSearch();
+});
