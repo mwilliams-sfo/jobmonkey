@@ -41,12 +41,14 @@ const companyExclusions = [
   /OKX/,
   /Perplexity/,
   /Rivian/,
+  /Robinhood/,
   /Roblox/,
   /SiriusXM/,
   /SpaceX/,
   /Temu/,
   /Tesla/,
   /TikTok/,
+  /Tinder/,
   /Wells Fargo/,
   /^World$/,
 
@@ -69,6 +71,7 @@ export const isExcludedCompany = company =>
   companyExclusions.some(it => company.match(it));
 
 const titleExclusions = [
+  /\bagent\b/i,
   /\bai\b/i,
   /\banalyst\b/i,
   /\bdirector\b/i,
