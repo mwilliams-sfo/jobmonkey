@@ -79,6 +79,7 @@ const addStyleSheet = document => {
         '.jm-gone { display: none !important; }\n' +
         '.jm-hidden { visibility: hidden !important; }\n'));
     document.head.appendChild(style);
+    style.sheet.disabled = true;
   }
   return style.sheet;
 };
@@ -91,6 +92,21 @@ const observeJobList = async (options) => {
   }
 };
 
-const styleSheet = addStyleSheet(document);
 
-observeJobList();
+window.addEventListener('load', function loadListener(evt) {
+  evt.target.defaultView.removeEventListener('load', loadListener);
+
+  const styleSheet = addStyleSheet(document);
+  (async () => {
+    styleSheet.disabled =
+      (await chrome.storage.local.get({filterEnabled: true}))
+        ?.filterEnabled !== true;
+    chrome.storage.local.onChanged.addListener(changes => {
+      if ('filterEnabled' in changes) {
+        styleSheet.disabled = changes.filterEnabled.newValue !== true;
+      }
+    });
+  })();
+
+  observeJobList();
+});

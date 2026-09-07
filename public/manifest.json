@@ -2,6 +2,8 @@
   "manifest_version": 3,
   "name": "JobMonkey",
   "version": "1.0",
+  "permissions": ["storage"],
+  "options_page": "options.html",
   "content_scripts": [
     {
       "js": ["content/dice.js"],
