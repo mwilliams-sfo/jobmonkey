@@ -40,7 +40,7 @@ const isInterestingJob = job => {
 
   const company =
     job.querySelector(selectors.jobCompany)?.textContent?.trim();
-  if (company && isExcludedCompany(title)) return false;
+  if (company && isExcludedCompany(company)) return false;
 
   const location =
     Array.from(job.querySelector(selectors.jobLocation)?.childNodes ?? [])
