@@ -1,6 +1,6 @@
 
-// No offense.
 const companyExclusions = [
+  /Apex Systems/,
   /Braintrust/,
   /Capgemini/,
   /Clera/,
@@ -14,6 +14,7 @@ const companyExclusions = [
   /Motion Recruitment/,
   /Net2Source/,
   /NTT DATA/,
+  /^Pyramid\b/,
   /Robert Half/,
   /The Mom Project/,
   /Verticalmove/,
@@ -31,8 +32,10 @@ const companyExclusions = [
   /Google DeepMind/,
   /Grindr/,
   /Kohler Ventures/,
+  /Knightscope/,
   /LinkedIn/,
   /Lucid Motors/,
+  /^Match\b/,
   /Meta/,
   /Microsoft/,
   /Monogram/,
@@ -71,7 +74,7 @@ export const isExcludedCompany = company =>
   companyExclusions.some(it => company.match(it));
 
 const titleExclusions = [
-  /\bagent\b/i,
+  /\bagent/i,
   /\bai\b/i,
   /\banalyst\b/i,
   /\bdirector\b/i,

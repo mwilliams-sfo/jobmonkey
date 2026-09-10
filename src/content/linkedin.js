@@ -94,7 +94,7 @@ const isInterestingJob = job => {
   if (company && isExcludedCompany(company)) return false;
 
   const location = attributes.childNodes[2]?.textContent?.trim();
-  if (location === 'United States (Remote)') return false;
+  if (location?.match(/\bSan Leandro\b/)) return false; // Wells Fargo
 
   return true;
 };

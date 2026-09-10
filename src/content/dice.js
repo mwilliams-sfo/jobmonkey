@@ -48,6 +48,7 @@ const isInterestingJob = job => {
       ?.[0]
       ?.data
       ?.trim();
+  if (location?.match(/\bSan Leandro\b/)) return false; // Wells Fargo
   const url = new URL(document.URL);
   if (url.pathname == '/jobs') {
     const locationParam = url.searchParams.get('location');
