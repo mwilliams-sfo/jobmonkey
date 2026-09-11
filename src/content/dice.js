@@ -4,10 +4,15 @@ import {elementAdded, elementRemoved, observeElement} from '../util/observe';
 import {splitTerms} from '../util/split';
 
 const selectors = {
+  intercomContainer: '#intercom-container',
   jobList: 'div.\\@container\\/job-list > div[role=list]',
   jobTitle: 'a[data-testid="job-search-job-detail-link"]',
   jobCompany: 'p[data-testid="job-card-company-name"]',
   jobLocation: 'a:has(> p[data-testid="job-card-company-name"]) + p',
+};
+
+const setGone = (elt, gone) => {
+  elt.classList.toggle('jm-gone', gone);
 };
 
 const setHidden = (elt, hidden) => {
@@ -85,6 +90,16 @@ const addStyleSheet = document => {
   return style.sheet;
 };
 
+const observeIntercom = async(options) => {
+  const signal = options?.signal;
+  while (true) {
+    const container =
+      await elementAdded(document, selectors.intercomContainer, {signal});
+    setGone(container, true);
+    await elementRemoved(document, container, {signal});
+  }
+};
+
 const observeJobList = async (options) => {
   const signal = options?.signal;
   while (true) {
@@ -109,5 +124,6 @@ window.addEventListener('load', function loadListener(evt) {
     });
   })();
 
+  observeIntercom();
   observeJobList();
 });
