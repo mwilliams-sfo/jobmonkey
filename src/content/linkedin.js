@@ -17,6 +17,7 @@ const selectors = {
   jobSearchLayout: 'header:has([componentkey="searchResultsHeaderComponent"]) + div',
   jobList: '[componentkey=SearchResultsMainContent]',
   jobCard: 'div:has([componentkey^="job-card-component-ref-"])',
+  jobButton: 'div[role=button][componentkey^="job-card-component-ref-"]',
   jobAttributes: 'figure + div > div > div > div',
   jobDetails: 'div:has(> div > [componentkey=SearchResultsMainContent]) + div *[data-component-type=LazyColumn]',
   jobMatch: '[data-sdui-component="com.linkedin.sdui.generated.jobseeker.dsl.impl.jobMatch"]',
@@ -26,6 +27,8 @@ const selectors = {
   companyInsights: '[componentkey^="JobDetails_PremiumCompanyInsights_"]',
   aboutCompany: '[componentkey^="JobDetails_AboutTheCompany_"]',
 };
+
+let styleSheet;
 
 const setGone = (elt, gone) => { elt.classList.toggle('jm-gone', gone); };
 
@@ -99,6 +102,30 @@ const isInterestingJob = job => {
   return true;
 };
 
+const fixSelection = jobs => {
+  if (styleSheet?.disabled) return;
+  const currentJobId = new URL(document.URL).searchParams.get('currentJobId');
+  if (!currentJobId) return;
+  const currentJobIndex = jobs.findIndex(it =>
+    it.querySelector('[componentkey^="job-card-component-ref-"]')
+      ?.getAttribute('componentkey')
+        === `job-card-component-ref-${currentJobId}`);
+  if (currentJobIndex < 0 || !isHidden(jobs[currentJobIndex])) return;
+  for (
+    let i = (currentJobIndex + 1) % jobs.length;
+    i != currentJobIndex;
+    i = (i + 1) % jobs.length
+  ) {
+    if (!isHidden(jobs[i])) {
+      const button = jobs[i].querySelector(selectors.jobButton);
+      if (button) {
+        button.click();
+        break;
+      }
+    }
+  }
+};
+
 const scrubJobList = list => {
   const jobs =
     Array.from(list.childNodes).filter(
@@ -106,6 +133,7 @@ const scrubJobList = list => {
   for (const job of jobs) {
     setHidden(job, !isInterestingJob(job));
   }
+  fixSelection(jobs);
 };
 
 const scrubJobDetails = details => {
@@ -229,7 +257,7 @@ const observeJobSearch = async (options) => {
 window.addEventListener('load', function loadListener(evt) {
   evt.target.defaultView.removeEventListener('load', loadListener);
 
-  const styleSheet = addStyleSheet(document);
+  styleSheet = addStyleSheet(document);
   (async () => {
     styleSheet.disabled =
       (await chrome.storage.local.get({filterEnabled: true}))
@@ -237,6 +265,9 @@ window.addEventListener('load', function loadListener(evt) {
     chrome.storage.local.onChanged.addListener(changes => {
       if ('filterEnabled' in changes) {
         styleSheet.disabled = changes.filterEnabled.newValue !== true;
+        if (!styleSheet.disabled) {
+          fixSelection();
+        }
       }
     });
   })();
