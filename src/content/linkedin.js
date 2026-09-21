@@ -3,6 +3,7 @@ import {isExcludedCompany, isExcludedTitle} from '../filter';
 import AbortablePromise from '../util/abortable-promise';
 import {elementAdded, elementRemoved, observeElement} from '../util/observe';
 import {splitTerms} from '../util/split';
+import {Visibility, Styler} from '../util/styler';
 
 const selectors = {
   workspace: '#workspace',
@@ -28,15 +29,7 @@ const selectors = {
   aboutCompany: '[componentkey^="JobDetails_AboutTheCompany_"]',
 };
 
-let styleSheet;
-
-const setGone = (elt, gone) => { elt.classList.toggle('jm-gone', gone); };
-
-const setHidden = (elt, hidden) => {
-  elt.classList.toggle('jm-hidden', hidden);
-};
-
-const isHidden = elt => elt.classList.contains('jm-hidden');
+let styler;
 
 const getPuzzleModules = parent =>
   Array.from(parent.querySelectorAll(selectors.moduleHeadline))
@@ -52,7 +45,7 @@ const isSuggestedPost = feedItem =>
 const scrubWorkspace = workspace => {
   const puzzleModules = getPuzzleModules(workspace);
   for (const module of puzzleModules) {
-    setGone(module, true);
+    styler.setVisibility(module, Visibility.GONE);
   }
 };
 
@@ -62,7 +55,8 @@ const scrubFeed = feed => {
       .filter(it =>
         it.parentNode?.parentNode?.parentNode?.parentNode?.parentNode === feed);
   for (const item of items) {
-    setGone(item, isSuggestedPost(item));
+    styler.setVisibility(
+      item, isSuggestedPost(item) ? Visibility.GONE : Visibility.VISIBLE);
   }
 };
 
@@ -103,20 +97,25 @@ const isInterestingJob = job => {
 };
 
 const fixSelection = jobs => {
-  if (styleSheet?.disabled) return;
+  if (!styler.enabled) return;
   const currentJobId = new URL(document.URL).searchParams.get('currentJobId');
   if (!currentJobId) return;
   const currentJobIndex = jobs.findIndex(it =>
     it.querySelector('[componentkey^="job-card-component-ref-"]')
       ?.getAttribute('componentkey')
         === `job-card-component-ref-${currentJobId}`);
-  if (currentJobIndex < 0 || !isHidden(jobs[currentJobIndex])) return;
+  if (
+    currentJobIndex < 0 ||
+      styler.getVisibility(jobs[currentJobIndex]) == Visibility.VISIBLE
+  ) {
+    return;
+  }
   for (
     let i = (currentJobIndex + 1) % jobs.length;
     i != currentJobIndex;
     i = (i + 1) % jobs.length
   ) {
-    if (!isHidden(jobs[i])) {
+    if (styler.getVisibility(jobs[i]) == Visibility.VISIBLE) {
       const button = jobs[i].querySelector(selectors.jobButton);
       if (button) {
         button.click();
@@ -131,7 +130,8 @@ const scrubJobList = list => {
     Array.from(list.childNodes).filter(
       it => it.nodeType == Node.ELEMENT_NODE && it.matches(selectors.jobCard));
   for (const job of jobs) {
-    setHidden(job, !isInterestingJob(job));
+    styler.setVisibility(
+      job, isInterestingJob(job) ? Visibility.VISIBLE : Visibility.HIDDEN);
   }
   fixSelection(jobs);
 };
@@ -141,14 +141,14 @@ const scrubJobDetails = details => {
 
   const peopleWhoCanHelp = details.querySelector(selectors.peopleWhoCanHelp);
   if (peopleWhoCanHelp) {
-    setGone(peopleWhoCanHelp, true);
+    styler.setVisibility(peopleWhoCanHelp, Visibility.GONE);
   }
 
   const jobMatch = details.querySelector(selectors.jobMatch);
   if (aboutJob && jobMatch) {
     for (var elt = jobMatch; elt; elt = elt.parentNode) {
       if (elt.parentNode == aboutJob.parentNode) {
-        setGone(elt, true);
+        styler.setVisibility(elt, Visibility.GONE);
         break;
       }
     }
@@ -156,33 +156,18 @@ const scrubJobDetails = details => {
 
   const applicantInsights = details.querySelector(selectors.applicantInsights);
   if (applicantInsights) {
-    setGone(applicantInsights, true);
+    styler.setVisibility(applicantInsights, Visibility.GONE);
   }
 
   const companyInsights = details.querySelector(selectors.companyInsights);
   if (companyInsights) {
-    setGone(companyInsights, true);
+    styler.setVisibility(companyInsights, Visibility.GONE);
   }
 
   const aboutCompany = details.querySelector(selectors.aboutCompany);
   if (aboutCompany) {
-    setGone(aboutCompany, true);
+    styler.setVisibility(aboutCompany, Visibility.GONE);
   }
-};
-
-const addStyleSheet = document => {
-  let style = document.querySelector('#jobmonkey-style');
-  if (!style) {
-    style = document.createElement('style');
-    style.setAttribute('id', 'jobmonkey-style');
-    style.appendChild(
-      document.createTextNode(
-        '.jm-gone { display: none !important; }\n' +
-        '.jm-hidden { visibility: hidden !important; }\n'));
-    document.head.appendChild(style);
-    style.sheet.disabled = true;
-  }
-  return style.sheet;
 };
 
 const observeFeed = async (parent, options) => {
@@ -256,16 +241,16 @@ const observeJobSearch = async (options) => {
 
 window.addEventListener('load', function loadListener(evt) {
   evt.target.defaultView.removeEventListener('load', loadListener);
-
-  styleSheet = addStyleSheet(document);
+  styler = new Styler(document);
+  styler.enabled = false;
   (async () => {
-    styleSheet.disabled =
+    styler.enabled =
       (await chrome.storage.local.get({filterEnabled: true}))
-        ?.filterEnabled !== true;
+        ?.filterEnabled === true;
     chrome.storage.local.onChanged.addListener(changes => {
       if ('filterEnabled' in changes) {
-        styleSheet.disabled = changes.filterEnabled.newValue !== true;
-        if (!styleSheet.disabled) {
+        styler.enabled = changes.filterEnabled.newValue === true;
+        if (styler.enabled) {
           fixSelection();
         }
       }

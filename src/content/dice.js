@@ -2,6 +2,7 @@
 import {isExcludedCompany, isExcludedTitle} from '../filter';
 import {elementAdded, elementRemoved, observeElement} from '../util/observe';
 import {splitTerms} from '../util/split';
+import {Visibility, Styler} from '../util/styler';
 
 const selectors = {
   intercomContainer: '#intercom-container',
@@ -11,13 +12,7 @@ const selectors = {
   jobLocation: 'a:has(> p[data-testid="job-card-company-name"]) + p',
 };
 
-const setGone = (elt, gone) => {
-  elt.classList.toggle('jm-gone', gone);
-};
-
-const setHidden = (elt, hidden) => {
-  elt.classList.toggle('jm-hidden', hidden);
-};
+let styler;
 
 const isInterestingTitle = title => {
   if (title && isExcludedTitle(title)) return false;
@@ -71,23 +66,9 @@ const scrubJobList = list => {
       .filter(it => it.nodeType == Node.ELEMENT_NODE)
       .filter(it => it.getAttribute('role') === 'listitem');
   for (const job of jobs) {
-    setHidden(job, !isInterestingJob(job));
+    styler.setVisibility(
+      job, isInterestingJob(job) ? Visibility.VISIBLE : Visibility.HIDDEN);
   }
-};
-
-const addStyleSheet = document => {
-  let style = document.querySelector('#jobmonkey-style');
-  if (!style) {
-    style = document.createElement('style');
-    style.setAttribute('id', 'jobmonkey-style');
-    style.appendChild(
-      document.createTextNode(
-        '.jm-gone { display: none !important; }\n' +
-        '.jm-hidden { visibility: hidden !important; }\n'));
-    document.head.appendChild(style);
-    style.sheet.disabled = true;
-  }
-  return style.sheet;
 };
 
 const observeIntercom = async(options) => {
@@ -95,7 +76,7 @@ const observeIntercom = async(options) => {
   while (true) {
     const container =
       await elementAdded(document, selectors.intercomContainer, {signal});
-    setGone(container, true);
+    styler.setVisibility(container, Visibility.GONE);
     await elementRemoved(document, container, {signal});
   }
 };
@@ -112,14 +93,15 @@ const observeJobList = async (options) => {
 window.addEventListener('load', function loadListener(evt) {
   evt.target.defaultView.removeEventListener('load', loadListener);
 
-  const styleSheet = addStyleSheet(document);
+  styler = new Styler(document);
+  styler.enabled = false;
   (async () => {
-    styleSheet.disabled =
+    styler.enabled =
       (await chrome.storage.local.get({filterEnabled: true}))
-        ?.filterEnabled !== true;
+        ?.filterEnabled === true;
     chrome.storage.local.onChanged.addListener(changes => {
       if ('filterEnabled' in changes) {
-        styleSheet.disabled = changes.filterEnabled.newValue !== true;
+        styler.enabled = changes.filterEnabled.newValue === true;
       }
     });
   })();
