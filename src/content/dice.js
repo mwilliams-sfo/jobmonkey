@@ -7,6 +7,8 @@ import {Visibility, Styler} from '../util/styler';
 const selectors = {
   intercomContainer: '#intercom-container',
   jobList: 'div.\\@container\\/job-list > div[role=list]',
+  jobCard: 'div[data-testid=job-card]',
+  jobCardLink: 'a[data-testid=job-search-job-card-link]',
   jobTitle: 'a[data-testid="job-search-job-detail-link"]',
   jobCompany: 'p[data-testid="job-card-company-name"]',
   jobLocation: 'a:has(> p[data-testid="job-card-company-name"]) + p',
@@ -58,6 +60,34 @@ const isInterestingJob = job => {
   }
 
   return true;
+};
+
+const fixSelection = jobs => {
+  if (!styler.enabled) return;
+  const selectedJobId = new URL(document.URL).searchParams.get('selectedJobId');
+  if (!selectedJobId) return;
+  const selectedJobIndex = jobs.findIndex(job =>
+    job.querySelector(selectors.jobCard)?.getAttribute('data-job-guid')
+      === selectedJobId);
+  if (
+    selectedJobIndex < 0 ||
+      styler.getVisibility(jobs[selectedJobIndex]) == Visibility.VISIBLE
+  ) {
+    return;
+  }
+  for (
+    let i = (selectedJobIndex + 1) % jobs.length;
+    i != selectedJobIndex;
+    i = (i + 1) % jobs.length
+  ) {
+    if (styler.getVisibility(jobs[i]) == Visibility.VISIBLE) {
+      const link = jobs[i].querySelector(selectors.jobCardLink);
+      if (link) {
+        link.click();
+        break;
+      }
+    }
+  }
 };
 
 const scrubJobList = list => {
