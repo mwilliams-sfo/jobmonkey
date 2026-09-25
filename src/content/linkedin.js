@@ -83,7 +83,14 @@ const isInterestingJob = job => {
   const attributes = job.querySelector(selectors.jobAttributes);
 
   const title =
-    attributes.childNodes[0]?.querySelector('p > span')?.textContent?.trim();
+    Array.from(
+      attributes
+        .childNodes[0]
+        ?.querySelector('p > span:nth-child(2)')
+        ?.childNodes)
+      ?.find(it => it.nodeType == Node.TEXT_NODE)
+      ?.data
+      ?.trim();
   if (title && !isInterestingTitle(title)) return false;
 
   const company =
