@@ -246,24 +246,30 @@ const observeJobSearch = async (options) => {
   }
 };
 
-window.addEventListener('load', function loadListener(evt) {
-  evt.target.defaultView.removeEventListener('load', loadListener);
+(async () => {
+  if (document.readyState == 'loading') {
+    await new Promise(resolve => {
+      document.addEventListener('DOMContentLoaded', function listener(evt) {
+        document.removeEventListener('DOMContentLoaded', listener);
+        resolve();
+      });
+    });
+  }
+
   styler = new Styler(document);
   styler.enabled = false;
-  (async () => {
-    styler.enabled =
-      (await chrome.storage.local.get({filterEnabled: true}))
-        ?.filterEnabled === true;
-    chrome.storage.local.onChanged.addListener(changes => {
-      if ('filterEnabled' in changes) {
-        styler.enabled = changes.filterEnabled.newValue === true;
-        if (styler.enabled) {
-          fixSelection();
-        }
+  styler.enabled =
+    (await chrome.storage.local.get({filterEnabled: true}))
+      ?.filterEnabled === true;
+  chrome.storage.local.onChanged.addListener(changes => {
+    if ('filterEnabled' in changes) {
+      styler.enabled = changes.filterEnabled.newValue === true;
+      if (styler.enabled) {
+        fixSelection();
       }
-    });
-  })();
+    }
+  });
 
   observeWorkspace();
   observeJobSearch();
-});
+})();
