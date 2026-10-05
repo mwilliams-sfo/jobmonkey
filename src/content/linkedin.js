@@ -27,6 +27,8 @@ const selectors = {
   applicantInsights: '[componentkey^="JobDetails_PremiumApplicantInsights_"]',
   companyInsights: '[componentkey^="JobDetails_PremiumCompanyInsights_"]',
   aboutCompany: '[componentkey^="JobDetails_AboutTheCompany_"]',
+  expandableTextBox: '[data-testid="expandable-text-box"]',
+  expandableTextButton: 'button[data-testid="expandable-text-button"]',
 };
 
 let styler;
@@ -160,6 +162,12 @@ const scrubJobDetails = details => {
       }
     }
   }
+
+  details
+    .querySelector(selectors.aboutJob)
+    ?.querySelector(selectors.expandableTextBox)
+    ?.querySelector(selectors.expandableTextButton)
+    ?.click();
 
   const applicantInsights = details.querySelector(selectors.applicantInsights);
   if (applicantInsights) {
