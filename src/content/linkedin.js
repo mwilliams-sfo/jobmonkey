@@ -21,7 +21,7 @@ const selectors = {
   jobButton: 'div[role=button][componentkey^="job-card-component-ref-"]',
   jobAttributes: 'figure + div > div > div > div',
   jobDetails: 'div:has(> div > [componentkey=SearchResultsMainContent]) + div *[data-component-type=LazyColumn]',
-  jobMatch: '[data-sdui-component="com.linkedin.sdui.generated.jobseeker.dsl.impl.jobMatch"]',
+  jobMatchRef: '[id^="JobMatchRef_"]',
   aboutJob: '[componentkey^="JobDetails_AboutTheJob_"]',
   peopleWhoCanHelp: '[componentkey^="JobDetailsPeopleWhoCanHelpSlot_"]',
   applicantInsights: '[componentkey^="JobDetails_PremiumApplicantInsights_"]',
@@ -153,9 +153,9 @@ const scrubJobDetails = details => {
     styler.setVisibility(peopleWhoCanHelp, Visibility.GONE);
   }
 
-  const jobMatch = details.querySelector(selectors.jobMatch);
-  if (aboutJob && jobMatch) {
-    for (var elt = jobMatch; elt; elt = elt.parentNode) {
+  const jobMatchRef = details.querySelector(selectors.jobMatchRef);
+  if (aboutJob && jobMatchRef) {
+    for (var elt = jobMatchRef; elt; elt = elt.parentNode) {
       if (elt.parentNode == aboutJob.parentNode) {
         styler.setVisibility(elt, Visibility.GONE);
         break;
