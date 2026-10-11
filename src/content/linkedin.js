@@ -1,9 +1,9 @@
 
 import {isExcludedCompany, isExcludedTitle} from '../filter';
-import AbortablePromise from '../util/abortable-promise';
-import {elementAdded, elementRemoved, observeElement} from '../util/observe';
-import {splitTerms} from '../util/split';
-import {Visibility, Styler} from '../util/styler';
+import AbortablePromise from '../abortable-promise';
+import {elementAdded, elementRemoved, observeElement} from '../observe';
+import {splitTerms} from '../split';
+import {Visibility, Styler} from '../styler';
 
 const selectors = {
   workspace: '#workspace',

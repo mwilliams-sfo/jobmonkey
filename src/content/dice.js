@@ -1,8 +1,8 @@
 
 import {isExcludedCompany, isExcludedTitle} from '../filter';
-import {elementAdded, elementRemoved, observeElement} from '../util/observe';
-import {splitTerms} from '../util/split';
-import {Visibility, Styler} from '../util/styler';
+import {elementAdded, elementRemoved, observeElement} from '../observe';
+import {splitTerms} from '../split';
+import {Visibility, Styler} from '../styler';
 
 const selectors = {
   intercomContainer: '#intercom-container',

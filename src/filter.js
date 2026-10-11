@@ -1,6 +1,6 @@
 
-// It saves me time not to see listings by companies for which I lack
-// enthusiasm.
+// It saves me time not to see listings by companies for which I lack enthuiasm
+// or have prior negative interaction.
 const companyExclusions = [
   /Apex Systems/,
   /Braintrust/,
