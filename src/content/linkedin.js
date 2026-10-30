@@ -20,13 +20,9 @@ const selectors = {
   jobCard: 'div:has([componentkey^="job-card-component-ref-"])',
   jobButton: 'div[role=button][componentkey^="job-card-component-ref-"]',
   jobAttributes: 'figure + div > div > div > div',
-  jobDetails: 'div:has(> div > [componentkey=SearchResultsMainContent]) + div *[data-component-type=LazyColumn]',
+  jobDetails: 'div[data-sdui-screen="com.linkedin.sdui.flagshipnav.jobs.SemanticJobDetails"] div[data-component-type=LazyColumn]',
   jobMatchRef: '[id^="JobMatchRef_"]',
   aboutJob: '[componentkey^="JobDetails_AboutTheJob_"]',
-  peopleWhoCanHelp: '[componentkey^="JobDetailsPeopleWhoCanHelpSlot_"]',
-  applicantInsights: '[componentkey^="JobDetails_PremiumApplicantInsights_"]',
-  companyInsights: '[componentkey^="JobDetails_PremiumCompanyInsights_"]',
-  aboutCompany: '[componentkey^="JobDetails_AboutTheCompany_"]',
   expandableTextBox: '[data-testid="expandable-text-box"]',
   expandableTextButton: 'button[data-testid="expandable-text-button"]',
 };
@@ -146,43 +142,50 @@ const scrubJobList = list => {
 };
 
 const scrubJobDetails = details => {
-  const aboutJob = details.querySelector(selectors.aboutJob);
+  const header =
+    Array.from(details.querySelectorAll('button'))
+      .filter(it => {
+        const text = it.textContent.trim();
+        return text == 'Save' || text == 'Saved';
+      })
+      .map(it => {
+        for (let i = 0; i < 9; i++) {
+          it = it?.parentNode;
+        }
+        return it
+      })
+      .find(it => it !== null);
+  if (!header) return;
 
-  const peopleWhoCanHelp = details.querySelector(selectors.peopleWhoCanHelp);
-  if (peopleWhoCanHelp) {
-    styler.setVisibility(peopleWhoCanHelp, Visibility.GONE);
-  }
+  const aboutJob =
+    Array.from(details.querySelectorAll('h2'))
+      .find(it => it.textContent.trim() == 'About the job')
+      ?.parentNode
+      ?.parentNode
+      ?.parentNode;
+  if (!aboutJob) return;
 
-  const jobMatchRef = details.querySelector(selectors.jobMatchRef);
-  if (aboutJob && jobMatchRef) {
-    for (var elt = jobMatchRef; elt; elt = elt.parentNode) {
-      if (elt.parentNode == aboutJob.parentNode) {
-        styler.setVisibility(elt, Visibility.GONE);
-        break;
+  let hideSet = Array.from(details.querySelectorAll('*'))
+      .filter(it =>
+        !(it.contains(header) || header.contains(it) ||
+            it.contains(aboutJob) || aboutJob.contains(it)));
+  for (let i = 0; i < hideSet.length; i++) {
+    for (let j = i + 1; j < hideSet.length;) {
+      if (hideSet[i].contains(hideSet[j])) {
+        hideSet.splice(j, 1);
+      } else {
+        j++;
       }
     }
   }
+  for (const elt of hideSet) {
+    styler.setVisibility(elt, Visibility.GONE);
+  }
 
-  details
-    .querySelector(selectors.aboutJob)
+  aboutJob
     ?.querySelector(selectors.expandableTextBox)
     ?.querySelector(selectors.expandableTextButton)
     ?.click();
-
-  const applicantInsights = details.querySelector(selectors.applicantInsights);
-  if (applicantInsights) {
-    styler.setVisibility(applicantInsights, Visibility.GONE);
-  }
-
-  const companyInsights = details.querySelector(selectors.companyInsights);
-  if (companyInsights) {
-    styler.setVisibility(companyInsights, Visibility.GONE);
-  }
-
-  const aboutCompany = details.querySelector(selectors.aboutCompany);
-  if (aboutCompany) {
-    styler.setVisibility(aboutCompany, Visibility.GONE);
-  }
 };
 
 const observeFeed = async (parent, options) => {
