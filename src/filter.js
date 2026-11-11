@@ -1,6 +1,6 @@
 
-// It saves me time not to see listings by companies for which I lack enthuiasm
-// or have prior negative interaction.
+// Companies may be listed here for various reasons, including lack of domain
+// interest, negative reputation or unresponsiveness.
 const companyExclusions = [
   /Apex Systems/,
   /Braintrust/,
@@ -9,6 +9,7 @@ const companyExclusions = [
   /Cognizant/,
   /Compunnel/,
   /CyberCoders/,
+  /Everforth Apex/,
   /GlobalLogic/,
   /HCLTech/,
   /Infojini/,
@@ -19,11 +20,14 @@ const companyExclusions = [
   /NTT DATA/,
   /^Pyramid\b/,
   /Robert Half/,
+  /Seven Hills Group/,
+  /Tenarai/,
   /The Mom Project/,
   /Verticalmove/,
   /Wipro/,
 
   /Amazon/,
+  /Anduril/,
   /Anthropic/,
   /Apple/,
   /Applied Intuition/,
@@ -32,6 +36,7 @@ const companyExclusions = [
   /ByteDance/,
   /Canonical/,
   /Cash App/,
+  /CoreWeave/,
   /DoorDash/,
   /EarnIn/,
   /DeepMind/,
