@@ -6,6 +6,8 @@ import {splitTerms} from '../split';
 import {Visibility, Styler} from '../styler';
 
 const selectors = {
+  lazyColumn: '[data-component-type=LazyColumn]',
+
   workspace: '#workspace',
 
   feed: 'div[data-testid=mainFeed]',
@@ -15,12 +17,11 @@ const selectors = {
 
   moduleHeadline: 'div > div > p',
 
-  jobSearchLayout: 'div:has(> div > div > div[componentkey=SearchResultsMainContent])',
+  jobSearchLayout: 'header:has(> div[componentkey=searchResultsHeaderComponent]) + div',
   jobList: 'div[componentkey=SearchResultsMainContent]',
   jobCard: 'div:has([componentkey^="job-card-component-ref-"])',
   jobButton: 'div[role=button][componentkey^="job-card-component-ref-"]',
   jobAttributes: 'figure + div > div > div > div',
-  jobDetails: 'div:has(> div > div[componentkey=SearchResultsMainContent]) + div div[data-component-type=LazyColumn]',
   companyLogo: 'figure:has(> svg[aria-label^="Company logo for, "]) , figure:has(> img[alt^="Company logo for, "])',
   jobMatchRef: '[id^="JobMatchRef_"]',
   aboutJob: '[componentkey^="JobDetails_AboutTheJob_"]',
@@ -224,7 +225,14 @@ const observeJobDetails = async (layout, options) => {
   const signal = options?.signal;
   while (true) {
     const details =
-      await elementAdded(layout, selectors.jobDetails, {signal});
+      await elementAdded(layout,
+        parent => {
+          return parent
+            .childNodes
+            .item(1)
+            ?.querySelector(selectors.lazyColumn);
+        },
+        {signal});
     await observeElement(layout, details, scrubJobDetails, {signal});
   }
 };
