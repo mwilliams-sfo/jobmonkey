@@ -1,16 +1,27 @@
 
 import {AbortablePromise} from './abort';
 
+const query = (parent, selector) => {
+  switch (typeof selector) {
+  case 'string':
+    return parent.querySelector(selector);
+  case 'function':
+    return selector(parent);
+  default:
+    throw TypeError();
+  }
+};
+
 export const elementAdded = async (parent, selector, options) => {
   const signal = options?.signal;
   signal?.throwIfAborted();
 
-  const element = parent.querySelector(selector);
+  const element = query(parent, selector);
   if (element) return element;
 
   const {promise, resolve, reject} = AbortablePromise.withResolvers(signal);
   const observer = new MutationObserver(mutationList => {
-    const element = parent.querySelector(selector);
+    const element = query(parent, selector);
     if (element) resolve(element);
   });
   try {
