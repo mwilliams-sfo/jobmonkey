@@ -1,6 +1,6 @@
 
 import {isExcludedCompany, isExcludedTitle} from '../filter';
-import AbortablePromise from '../abortable-promise';
+import {AbortablePromise} from '../abort';
 import {elementAdded, elementRemoved, observeElement} from '../observe';
 import {splitTerms} from '../split';
 import {Visibility, Styler} from '../styler';

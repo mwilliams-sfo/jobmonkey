@@ -1,5 +1,5 @@
 
-import AbortablePromise from './abortable-promise.js';
+import {AbortablePromise} from './abort';
 
 export const elementAdded = async (parent, selector, options) => {
   const signal = options?.signal;
